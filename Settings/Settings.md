@@ -10,7 +10,8 @@
 - [DirectX project](#directx-project)
   - [1. Create `DirectX` Project](#1-create-directx-project)
   - [2. Create `Windows Desktop App` Project](#2-create-windows-desktop-app-project)
-    - [1. pch.h 세팅](#1-pchh-세팅)
+    - [1. UTF-8](#1-utf-8)
+    - [2. pch.h 세팅](#2-pchh-세팅)
 
 <br><br>
 
@@ -94,7 +95,17 @@ DX11을 사용하기 위한 기본 설정과 초기화 코드를 자동으로 �
 프로젝트 구조와 설정을 자유롭게 할 수 있으며, DX11을 학습하기 용이하다.   
 처음부터 끝까지 모든 것을 직접 세팅하기 때문에 시간 소모가 크다.   
 
-### 1. pch.h 세팅
+### 1. UTF-8
+git에 올리는 경우, UTF-8로 파일을 저장해야 한글이 깨지지 않는다.   
+[UTF-8 ENCODING 설정](https://artiper.tistory.com/204)   
+![alt text](Images/UTF_8.png)   
+```
+[*]
+charset = utf-8
+```
+기존 파일들은 `다른 이름으로 저장`을 이용해서 utf-8로 다시 저장한다.   
+
+### 2. pch.h 세팅
 Precompiled Header의 약자   
 compile time을 단축하기 위해 사용되며, 자주 변경되지 않는 library header를 관리한다.   
 프로젝트에서 해당 파일을 미리 컴파일( pre-compile )하여 저장하기 때문에, pch.h가 관리하는 header를 다시 compile 할 필요가 없기 때문에 compile time이 크게 단축된다.   
