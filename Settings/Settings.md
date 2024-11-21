@@ -10,6 +10,7 @@
 - [DirectX project](#directx-project)
   - [1. Create `DirectX` Project](#1-create-directx-project)
   - [2. Create `Windows Desktop App` Project](#2-create-windows-desktop-app-project)
+    - [1. pch.h 세팅](#1-pchh-세팅)
 
 <br><br>
 
@@ -92,3 +93,35 @@ DX11을 사용하기 위한 기본 설정과 초기화 코드를 자동으로 �
 
 프로젝트 구조와 설정을 자유롭게 할 수 있으며, DX11을 학습하기 용이하다.   
 처음부터 끝까지 모든 것을 직접 세팅하기 때문에 시간 소모가 크다.   
+
+### 1. pch.h 세팅
+Precompiled Header의 약자   
+compile time을 단축하기 위해 사용되며, 자주 변경되지 않는 library header를 관리한다.   
+프로젝트에서 해당 파일을 미리 컴파일( pre-compile )하여 저장하기 때문에, pch.h가 관리하는 header를 다시 compile 할 필요가 없기 때문에 compile time이 크게 단축된다.   
+```cpp
+// pch.h
+#pragma once
+
+// 자주 사용하는 standard library header
+#include <iostream>
+#include <vector>
+#include <string>
+#include <map>
+
+// project header
+```
+```cpp
+// pch.cpp
+#include "pch.h"
+```
+이제 `pch.cpp의 properties`를 열고   
+![alt text](Images/pch_cpp.png)   
+Precompiled Header 옵션을 `Create`, Precompiled Header File 옵션을 `pch.h`로 지정한다.   
+
+문제는 모든 프로젝트에 적용한 것이 아니기 때문에 `프로젝트의 전체적인 precompiled headers 설정을 확인`한다.   
+![alt text](Images/project_precompiled.png)   
+Precompiled Header를 사용하기 때문에 `Use`, 지정 File을 `pch.h`로 설정한다.   
+여기서 build를 수행하면 failed가 발생하며, 이는 wWinMain()이 존재하는 .cpp 파일에 `#include "pch.h"`를 추가하면 해결된다.   
+해당 header는 각 cpp 파일의 첫 번째로 위치해야 한다.   
+
+만약 다른 cpp 파일에도 precompiled header를 사용하려면, `Use` 옵션을 켜야한다.   
