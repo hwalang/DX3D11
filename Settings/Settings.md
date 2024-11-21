@@ -8,7 +8,8 @@
 - [visual studio 2022](#visual-studio-2022)
   - [1. 멀티쓰레드 이용을 위한 open MP 사용](#1-멀티쓰레드-이용을-위한-open-mp-사용)
 - [DirectX project](#directx-project)
-  - [1. Create DirectX Project](#1-create-directx-project)
+  - [1. Create `DirectX` Project](#1-create-directx-project)
+  - [2. Create `Windows Desktop App` Project](#2-create-windows-desktop-app-project)
 
 <br><br>
 
@@ -61,7 +62,7 @@ vcpkg integrate install
 # visual studio 2022
 
 ## 1. 멀티쓰레드 이용을 위한 open MP 사용
-![openMP 사용](openMP.png)   
+![openMP 사용](Images/openMP.png)   
 
 1. 프로젝트의 properties로 이동
 2. C/C++ -> All Options -> open 검색
@@ -71,8 +72,10 @@ vcpkg integrate install
 <br><br>
 
 # DirectX project
-## 1. Create DirectX Project
-![alt text](create_DX3Dproj.png)   
+학습을 위해서 Windows Desktop Application으로 프로젝트를 생성한다.   
+
+## 1. Create `DirectX` Project
+![alt text](Images/create_DX3Dproj.png)   
 DirectX11 App Project를 만들기 위해서는 `C++를 사용한 데스크톱 개발`, `Windows 애플리케이션 개발`과 `C++를 사용한 게임 개발`에서 SDK를 다운받는다.   
 1. Desktop: `Windows 앱 SDK C++ 템플릿`
 2. check App
@@ -80,3 +83,12 @@ DirectX11 App Project를 만들기 위해서는 `C++를 사용한 데스크톱 �
    - [Universal Windows 필요](https://github.com/microsoft/DirectXTK/wiki/The-basic-game-loop#setup)
 3. check Game
 4. Create DirectX11 App
+
+DX11을 사용하기 위한 기본 설정과 초기화 코드를 자동으로 생성해서 핵심 로직에 집중할 수 있다.   
+하지만 템플릿이 제공하는 구조와 설정에 맞춰 개발해야 하므로 유연성이 떨어지며, DX11 초기화 과정과 설정을 직접 구현하는 학습 기회를 놓칠 수 있다.   
+
+## 2. Create `Windows Desktop App` Project
+![alt text](Images/create_WDA.png)   
+
+프로젝트 구조와 설정을 자유롭게 할 수 있으며, DX11을 학습하기 용이하다.   
+처음부터 끝까지 모든 것을 직접 세팅하기 때문에 시간 소모가 크다.   
