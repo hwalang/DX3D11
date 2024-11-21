@@ -113,15 +113,19 @@ compile time을 단축하기 위해 사용되며, 자주 변경되지 않는 lib
 ```cpp
 // pch.h
 #pragma once
+// common
 
-// 자주 사용하는 standard library header
+// std
 #include <iostream>
-#include <vector>
-#include <string>
-#include <map>
 
-// project header
+// dx
+#include <d3d11.h>
+#include <d3dcompiler.h>
+
+// windows
+#include <windows.h>
 ```
+지금은 main.cpp에서 사용할 header들이다.   
 ```cpp
 // pch.cpp
 #include "pch.h"
