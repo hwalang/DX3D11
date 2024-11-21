@@ -12,6 +12,7 @@
   - [2. Create `Windows Desktop App` Project](#2-create-windows-desktop-app-project)
     - [1. UTF-8](#1-utf-8)
     - [2. pch.h 세팅](#2-pchh-세팅)
+    - [3. wWinMain() to main() - optional](#3-wwinmain-to-main---optional)
 
 <br><br>
 
@@ -136,3 +137,13 @@ Precompiled Header를 사용하기 때문에 `Use`, 지정 File을 `pch.h`로 �
 해당 header는 각 cpp 파일의 첫 번째로 위치해야 한다.   
 
 만약 다른 cpp 파일에도 precompiled header를 사용하려면, `Use` 옵션을 켜야한다.   
+
+### 3. wWinMain() to main() - optional
+프로그램을 시작할 때, main() 함수에서 시작하고 싶다.   
+![alt text](Images/subsystem_main.png)   
+project의 properties - Linker에서 system을 변경한다.   
+기본값은 Windows(/SUBSYSTEM:WINDOWS)이며, 이를 Console로 변경한다.   
+그러면 프로그램 진입점을 `main()`으로 사용할 수 있다.   
+
+![alt text](Images/Entry_point.png)   
+Linker - Advanced의 Entry Point( 진입점 )이 비어있다면 기본 Entry Point가 사용되며, 이는 main()이다.   
