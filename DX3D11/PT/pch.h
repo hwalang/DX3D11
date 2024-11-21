@@ -1,13 +1,14 @@
 #pragma once
 
-// user-defined
+// common
 
 
 // std
 #include <iostream>
-#include <vector>
-#include <string>
-#include <map>
+
+// dx
+#include <d3d11.h>
+#include <d3dcompiler.h>
 
 // windows
 #include <windows.h>
