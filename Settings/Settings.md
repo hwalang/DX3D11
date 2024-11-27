@@ -142,7 +142,7 @@ Precompiled Header를 사용하기 때문에 `Use`, 지정 File을 `pch.h`로 �
 만약 다른 cpp 파일에도 precompiled header를 사용하려면, `Use` 옵션을 켜야한다.   
 
 ### 3. wWinMain() to main() - optional
-DX project는 main()에서 시작하기 때문에 Entry Point를 wWinMain()에서 main()으로 변경했다.   
+console 창에서 Debugging을 하기 위해서 wWinMain이 아닌 main()을 Entry Point로 지정한다.   
 ![alt text](Images/subsystem_main.png)   
 project의 properties - Linker에서 system을 변경한다.   
 기본값은 Windows(/SUBSYSTEM:WINDOWS)이며, 이를 Console로 변경한다.   
