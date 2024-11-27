@@ -62,6 +62,7 @@ ZeroMemory(&wc, sizeof(WNDCLASSEX));
 wc.cbSize = sizeof(WNDCLASSEX);
 wc.style = CS_CLASSDC;
 wc.lpfnWndProc = WndProc;
+// wc.hInstance = hInstance;
 wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 wc.hbrBackground = (HBRUSH) COLOR_WINDOW;
 wc.lpszClassName = L"WindowClass1";
