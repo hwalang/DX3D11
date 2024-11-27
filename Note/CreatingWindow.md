@@ -18,7 +18,7 @@ window 창을 띄우는 과정을 살펴본다.
 Window를 만들기 위해 호출할 수 있는 함수가 하나도 없다.   
 왜냐하면 Window는 단일 함수 호출에 비해 너무 많은 데이터를 요구한다. 또한 Window는 event 기반이며, 이러한 event는 handle을 위해 추가적인 코드를 요구한다.   
 여기서 event는 button click, window resize, key-press 등 window에서 발생하는 동작을 말한다.   
-이러한 event가 발생하면 window는 WnddProc()가 처리하는 프로그램에 message를 보낸다.   
+이러한 event가 발생하면 window는 WndProc()가 처리하는 프로그램에 message를 보낸다.   
 
 
 # Building the Window
@@ -62,7 +62,6 @@ ZeroMemory(&wc, sizeof(WNDCLASSEX));
 wc.cbSize = sizeof(WNDCLASSEX);
 wc.style = CS_CLASSDC;
 wc.lpfnWndProc = WndProc;
-wc.hInstance = hInstance;                   // GetModuleHandle(NULL)
 wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 wc.hbrBackground = (HBRUSH) COLOR_WINDOW;
 wc.lpszClassName = L"WindowClass1";
