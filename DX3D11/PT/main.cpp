@@ -46,6 +46,11 @@ int main ()
 		return -1;
 	}
 
+	int screenWidth = 1280;
+	int screenHeight = 960;
+	RECT wr = { 0, 0, screenWidth, screenHeight };
+	AdjustWindowRect ( &wr , WS_OVERLAPPEDWINDOW , FALSE );
+
 	HWND mainWindow = CreateWindowEx ( 
 		NULL ,
 		wc.lpszClassName ,     // name of the window class
@@ -53,27 +58,14 @@ int main ()
 		WS_OVERLAPPEDWINDOW ,  // window style
 		0 ,                    // x-position of the window
 		0 ,                    // y-position of the window
-		1280 ,                 // width of the window
-		960 ,                  // height of the window
+		wr.right - wr.left ,   // width of the window
+		wr.bottom - wr.top ,   // height of the window
 		NULL ,                 // we have no parent window
 		NULL ,                 // we aren't using menus
 		wc.hInstance ,         // apllication handle
 		NULL									 // used with multiple windows
 	);
 
-	/*
-	int screenWidth = 1280;
-	int screenHeight = 960;
-	RECT wr = {0, 0, screenWidth, screenHeight};
-	AdjustWindowRect ( &wr , WS_OVERLAPPEDWINDOW , false );
-
-	HWND mainWindow = CreateWindow(wc.lpszClassName, L"PT WND", WS_OVERLAPPEDWINDOW,
-																0,
-																0,
-																wr.right - wr.left,
-																wr.bottom - wr.top,
-																NULL , NULL , wc.hInstance , NULL );
-	*/
 	if ( !mainWindow ) {
 		std::cout << "CreateWindow() failed." << std::endl;
 		return -1;
@@ -83,7 +75,9 @@ int main ()
 	UpdateWindow ( mainWindow );
 
 	MSG msg = { 0 };
-	while ( WM_QUIT != msg.message ) {	// GetMessage(&msg, NULL, 0, 0 )
+	// check to see if it is time to quit
+	while ( WM_QUIT != msg.message ) {
+		// check to see if any messages are waiting in the queue
 		if ( PeekMessage ( &msg , NULL , 0 , 0 , PM_REMOVE ) ) {
 			TranslateMessage ( &msg );
 			DispatchMessage ( &msg );
