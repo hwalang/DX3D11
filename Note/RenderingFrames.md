@@ -15,6 +15,8 @@ GPU가 최종 이미지를 생성할 memory 위치( back buffer )와 back buffer
 즉, **back buffer에 직접 rendering 하지 않고 중간 단계의 surface에 rendering 함으로써 다양한 graphic 효과를 구현하고, 최종적으로 완성된 이미지를 화면에 출력**한다.   
 
 Direct3D에서 rendering을 하기 위해선 반드시 **render target을 지정**한다. 대부분의 경우 **이러한 render target은 back buffer를 의미**하고, 이는 rendering 할 video memory의 위치를 유지하는 간단한 **COM object**이다.   
+
+즉, **video memory에 texture를 rendering하기 위해서 Render Target을 지정하는 방법**을 알아본다.   
 ```cpp
 ID3D11RenderTargetView* backBuffer;
 
