@@ -2,12 +2,14 @@
 
 #pragma comment (lib, "d3d11.lib")
 
-IDXGISwapChain* swapChain;      // the pointer to the swap chain interface
-ID3D11Device* dev;              // the pointer to our Direct3D device interface
-ID3D11DeviceContext* devcon;    // the pointer to our Direct3D device context
+IDXGISwapChain* swapChain;					// the pointer to the swap chain interface
+ID3D11Device* dev;									// the pointer to our Direct3D device interface
+ID3D11DeviceContext* devcon;				// the pointer to our Direct3D device context
+ID3D11RenderTargetView* backBuffer;	// the pointer to our back buffer
 
 bool InitD3D ( HWND hWnd );
-void CleanD3D ( void );
+void RenderFrame ();
+void CleanD3D ();
 LRESULT CALLBACK WndProc ( HWND hwnd , UINT msg , WPARAM wParam , LPARAM lParam );
 
 int main ()
@@ -69,7 +71,7 @@ int main ()
 			DispatchMessage ( &msg );
 		}
 		else {
-			std::cout << "Rendering..." << std::endl;
+			RenderFrame ();
 		}
 	}
 
@@ -80,6 +82,7 @@ int main ()
 
 bool InitD3D ( HWND hWnd ) {
 
+	// Init Direct3D
 	DXGI_SWAP_CHAIN_DESC scd;
 	ZeroMemory ( &scd , sizeof ( scd ) );
 	scd.BufferCount = 1;
@@ -105,11 +108,45 @@ bool InitD3D ( HWND hWnd ) {
 		return false;
 	}
 
+	// Set the render target
+	ID3D11Texture2D* pBackBuffer;
+	swapChain->GetBuffer ( 0 , __uuidof( ID3D11Texture2D ) , ( LPVOID* ) &pBackBuffer );
+	if ( pBackBuffer ) {
+		dev->CreateRenderTargetView ( pBackBuffer , NULL , &backBuffer );
+		pBackBuffer->Release ();
+	}
+	else {
+		std::cout << "CreateRenderTargetView() failed." << std::endl;
+		return false;
+	}
+	devcon->OMSetRenderTargets ( 1 , &backBuffer , NULL );
+
+	// Set the viewport
+	D3D11_VIEWPORT viewPort;
+	ZeroMemory ( &viewPort , sizeof ( D3D11_VIEWPORT ) );
+	viewPort.TopLeftX = 0;
+	viewPort.TopLeftY = 0;
+	viewPort.Width = 1280;
+	viewPort.Height = 960;
+	devcon->RSSetViewports ( 1 , &viewPort );
+
 	return true;
+}
+
+void RenderFrame () {
+	// clear the back buffer to a deep blue
+	float clearColor[ 4 ] = { 0.0f, 0.2f, 0.4f, 1.0f };
+	devcon->ClearRenderTargetView ( backBuffer , clearColor);
+
+	// switch the back buffer and the front buffer
+	swapChain->Present ( 0 , 0 );
+
+	std::cout << "Rendering..." << std::endl;
 }
 
 void CleanD3D () {
 	swapChain->Release ();
+	backBuffer->Release ();
 	dev->Release ();
 	devcon->Release ();
 }
