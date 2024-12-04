@@ -2,6 +2,9 @@
 
 #pragma comment (lib, "d3d11.lib")
 
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 960
+
 IDXGISwapChain* swapChain;					// the pointer to the swap chain interface
 ID3D11Device* dev;									// the pointer to our Direct3D device interface
 ID3D11DeviceContext* devcon;				// the pointer to our Direct3D device context
@@ -21,7 +24,7 @@ int main ()
 	wc.style = CS_CLASSDC;
 	wc.lpfnWndProc = WndProc;
 	wc.hCursor = LoadCursor ( NULL , IDC_ARROW );
-	wc.hbrBackground = ( HBRUSH ) COLOR_WINDOW;
+	//wc.hbrBackground = ( HBRUSH ) COLOR_WINDOW;
 	wc.lpszClassName = L"WindowClass1";
 
 	if ( !RegisterClassEx ( &wc ) ) {
@@ -29,9 +32,7 @@ int main ()
 		return -1;
 	}
 
-	int screenWidth = 1280;
-	int screenHeight = 960;
-	RECT wr = { 0, 0, screenWidth, screenHeight };
+	RECT wr = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
 	AdjustWindowRect ( &wr , WS_OVERLAPPEDWINDOW , FALSE );
 
 	HWND mainWindow = CreateWindowEx ( 
@@ -87,10 +88,13 @@ bool InitD3D ( HWND hWnd ) {
 	ZeroMemory ( &scd , sizeof ( scd ) );
 	scd.BufferCount = 1;
 	scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	scd.BufferDesc.Width = SCREEN_WIDTH;
+	scd.BufferDesc.Height = SCREEN_HEIGHT;
 	scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	scd.OutputWindow = hWnd;
 	scd.SampleDesc.Count = 4;
 	scd.Windowed = TRUE;
+	scd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
 	if ( FAILED ( D3D11CreateDeviceAndSwapChain ( NULL ,
 		D3D_DRIVER_TYPE_HARDWARE ,
@@ -145,6 +149,8 @@ void RenderFrame () {
 }
 
 void CleanD3D () {
+	swapChain->SetFullscreenState ( FALSE , NULL );
+
 	swapChain->Release ();
 	backBuffer->Release ();
 	dev->Release ();
