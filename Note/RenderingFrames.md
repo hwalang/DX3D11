@@ -1,6 +1,10 @@
 - [Introduce](#introduce)
 - [Setting the Render Target](#setting-the-render-target)
   - [Render Target을 Setting하는 이유](#render-target을-setting하는-이유)
+- [Setting the Viewport](#setting-the-viewport)
+- [Rendering Frames](#rendering-frames)
+- [Obligatory Cleanup](#obligatory-cleanup)
+- [Final Code](#final-code)
 
 
 [Rendering Frames - DirectXTutorial](http://www.directxtutorial.com/Lesson.aspx?lessonid=11-4-3)   
@@ -70,3 +74,252 @@ GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
 
 ## Render Target을 Setting하는 이유
 이 작업을 통해 **back buffer를 render target으로 설정하여, 우리가 그리는 모든 것이 back buffer에 rendering 되고, 나중에 화면에 표시**될 수 있게 한다.   
+
+# Setting the Viewport
+![alt text](Images/RenderingFrames/PixelCoordinatesAndNormalizedCoordinates.png)   
+**viewport는 pixel coordinates를 normalized coordinates로 변환하는 하나의 방법**이다.   
+
+**pixel coordinates는 the upper-left corner의 (0, 0)에서 시작하고, 한 칸에 한 pixel이 존재**한다.   
+**normalized coordinates는 (-1, -1)에서 시작하고, back buffer의 크기에 상관없이 (1, 1)까지 늘어난다**.   
+여기서 normalized라는 용어는 값이 1이 될 때까지 조정된다는 의미다.   
+
+(-1, -1)과 (1, 1)이 무엇인지는 viewport에 따라 결정된다. viewport는 pixel coordinates에서 (-1, -1)과 (1, 1)의 위치를 설정할 수 있는 struct이다.   
+```cpp
+bool InitD3D( HWND hWnd ) {
+  // Direct3D Initialization
+  // ...
+
+  // Set the render target
+  // ...
+
+  // Set the viewport
+  D3D11_VIEWPORT viewPort;
+  ZeroMmeory( &viewPort, sizeof(D3D11_VIEWPORT) );
+
+  viewPort.TopLeftX = 0;
+  viewPort.TopLeftY = 0;
+  viewPort.Width = 1280;
+  viewPort.Height = 960;
+
+  devcon->RSSetViewports(1, &viewPort);
+}
+```
+`RRSetViewports()`는 viewport struct를 활성화하는 함수다.   
+첫 번째 인자는 사용하는 viewport의 번호를 나타내며, 두 번째 인자는 viewport struct의 pointers list를 가리키는 주소를 의미한다.   
+
+# Rendering Frames
+이제 간단한 frame을 rendering하는 함수를 생성한다.   
+```cpp
+// this is the function used to render a single frame
+void RenderFrame() {
+  // clear the back buffer to a deep blue
+  float clearColor[4] = { 0.0f, 0.2f, 0.4f, 1.0f };
+  devcon->ClearRenderTargetView(backBuffer, clearColor);
+
+  // do 3D rendering on the back buffer here
+
+  // switch the back buffer and the front buffer
+  swapChain->Present(0, 0);
+}
+```
+`devcon->ClearRenderTargetView`는 render target buffer를 특정한 color로 채운다.   
+**첫 인자는 render target object의 주소**를 원하기 때문에 `backBuffer`를 넘긴다.   
+**두 번째 인자는 back buffer를 어떤 color로 채울지 결정**한다. 이를 위해 `D3DXCOLOR`를 사용하여 color를 생성하며, RGBA를 의미한다.   
+
+`swapChain->Present`는 기본적으로 **back buffer가 front buffer가 되도록 swap chain의 "swap"을 담당**한다.   
+
+# Obligatory Cleanup
+사용한 COM object는 반드시 `Release`한다.   
+```cpp
+void CleanD3D() {
+  swapChain->Release();
+  backBuffer->Release();
+  dev->Release();
+  devcon->Release();
+}
+```
+
+# Final Code
+```cpp
+#include "pch.h"
+
+#pragma comment (lib, "d3d11.lib")
+
+IDXGISwapChain* swapChain;					// the pointer to the swap chain interface
+ID3D11Device* dev;									// the pointer to our Direct3D device interface
+ID3D11DeviceContext* devcon;				// the pointer to our Direct3D device context
+ID3D11RenderTargetView* backBuffer;	// the pointer to our back buffer
+
+bool InitD3D ( HWND hWnd );
+void RenderFrame ();
+void CleanD3D ();
+LRESULT CALLBACK WndProc ( HWND hwnd , UINT msg , WPARAM wParam , LPARAM lParam );
+
+int main ()
+{
+	WNDCLASSEX wc;
+	ZeroMemory ( &wc , sizeof ( WNDCLASSEX ) );
+
+	wc.cbSize = sizeof ( WNDCLASSEX );
+	wc.style = CS_CLASSDC;
+	wc.lpfnWndProc = WndProc;
+	wc.hCursor = LoadCursor ( NULL , IDC_ARROW );
+	wc.hbrBackground = ( HBRUSH ) COLOR_WINDOW;
+	wc.lpszClassName = L"WindowClass1";
+
+	if ( !RegisterClassEx ( &wc ) ) {
+		std::cout << "RegisterClassEx() failed." << std::endl;
+		return -1;
+	}
+
+	int screenWidth = 1280;
+	int screenHeight = 960;
+	RECT wr = { 0, 0, screenWidth, screenHeight };
+	AdjustWindowRect ( &wr , WS_OVERLAPPEDWINDOW , FALSE );
+
+	HWND mainWindow = CreateWindowEx ( 
+		NULL ,
+		wc.lpszClassName ,     // name of the window class
+		L"window1 title" ,     // title of the window
+		WS_OVERLAPPEDWINDOW ,  // window style
+		0 ,                    // x-position of the window
+		0 ,                    // y-position of the window
+		wr.right - wr.left ,   // width of the window
+		wr.bottom - wr.top ,   // height of the window
+		NULL ,                 // we have no parent window
+		NULL ,                 // we aren't using menus
+		wc.hInstance ,         // apllication handle
+		NULL									 // used with multiple windows
+	);
+
+	if ( !mainWindow ) {
+		std::cout << "CreateWindow() failed." << std::endl;
+		return -1;
+	}
+
+	ShowWindow ( mainWindow , SW_SHOWDEFAULT );
+	UpdateWindow ( mainWindow );
+
+	if ( !InitD3D ( mainWindow ) ) {
+		std::cout << "InitD3D() failed." << std::endl;
+		return -1;
+	}
+
+	MSG msg = { 0 };
+	// check to see if it is time to quit
+	while ( WM_QUIT != msg.message ) {
+		// check to see if any messages are waiting in the queue
+		if ( PeekMessage ( &msg , NULL , 0 , 0 , PM_REMOVE ) ) {
+			TranslateMessage ( &msg );
+			DispatchMessage ( &msg );
+		}
+		else {
+			RenderFrame ();
+		}
+	}
+
+	CleanD3D ();
+
+	return 0;
+}
+
+bool InitD3D ( HWND hWnd ) {
+
+	// Init Direct3D
+	DXGI_SWAP_CHAIN_DESC scd;
+	ZeroMemory ( &scd , sizeof ( scd ) );
+	scd.BufferCount = 1;
+	scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	scd.OutputWindow = hWnd;
+	scd.SampleDesc.Count = 4;
+	scd.Windowed = TRUE;
+
+	if ( FAILED ( D3D11CreateDeviceAndSwapChain ( NULL ,
+		D3D_DRIVER_TYPE_HARDWARE ,
+		NULL ,
+		NULL ,
+		NULL ,
+		NULL ,
+		D3D11_SDK_VERSION ,
+		&scd ,
+		&swapChain ,
+		&dev ,
+		NULL ,
+		&devcon ) ) ) {
+		std::cout << "D3D11CreateDeviceAndSwapChain() failed." << std::endl;
+		return false;
+	}
+
+	// Set the render target
+	ID3D11Texture2D* pBackBuffer;
+	swapChain->GetBuffer ( 0 , __uuidof( ID3D11Texture2D ) , ( LPVOID* ) &pBackBuffer );
+	if ( pBackBuffer ) {
+		dev->CreateRenderTargetView ( pBackBuffer , NULL , &backBuffer );
+		pBackBuffer->Release ();
+	}
+	else {
+		std::cout << "CreateRenderTargetView() failed." << std::endl;
+		return false;
+	}
+	devcon->OMSetRenderTargets ( 1 , &backBuffer , NULL );
+
+	// Set the viewport
+	D3D11_VIEWPORT viewPort;
+	ZeroMemory ( &viewPort , sizeof ( D3D11_VIEWPORT ) );
+	viewPort.TopLeftX = 0;
+	viewPort.TopLeftY = 0;
+	viewPort.Width = 1280;
+	viewPort.Height = 960;
+	devcon->RSSetViewports ( 1 , &viewPort );
+
+	return true;
+}
+
+void RenderFrame () {
+	// clear the back buffer to a deep blue
+	float clearColor[ 4 ] = { 0.0f, 0.2f, 0.4f, 1.0f };
+	devcon->ClearRenderTargetView ( backBuffer , clearColor);
+
+	// switch the back buffer and the front buffer
+	swapChain->Present ( 0 , 0 );
+
+	std::cout << "Rendering..." << std::endl;
+}
+
+void CleanD3D () {
+	swapChain->Release ();
+	backBuffer->Release ();
+	dev->Release ();
+	devcon->Release ();
+}
+
+LRESULT CALLBACK WndProc ( HWND hwnd , UINT msg , WPARAM wParam , LPARAM lParam ) {
+	switch ( msg ) {
+	case WM_SIZE:
+		// Reset and resize swapchain
+		break;
+	case WM_SYSCOMMAND:
+		if ( ( wParam & 0xfff0 ) == SC_KEYMENU ) // Disable ALT application menu
+			return 0;
+		break;
+	case WM_MOUSEMOVE:
+		// cout << "Mouse " << LOWORD(lParam) << " " << HIWORD(lParam) << endl;
+		break;
+	case WM_LBUTTONUP:
+		// cout << "WM_LBUTTONUP Left mouse button" << endl;
+		break;
+	case WM_RBUTTONUP:
+		// cout << "WM_RBUTTONUP Right mouse button" << endl;
+		break;
+	case WM_KEYDOWN:
+		// cout << "WM_KEYDOWN " << (int)wParam << endl;
+		break;
+	case WM_DESTROY:
+		::PostQuitMessage ( 0 );
+		return 0;
+	}
+
+	return DefWindowProc ( hwnd , msg , wParam , lParam );
+}
+```
