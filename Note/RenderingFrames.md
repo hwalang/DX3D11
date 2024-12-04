@@ -8,6 +8,7 @@
 
 
 [Rendering Frames - DirectXTutorial](http://www.directxtutorial.com/Lesson.aspx?lessonid=11-4-3)   
+[Metal Coordinate System - stackoverflow](https://stackoverflow.com/questions/58702023/what-is-the-coordinate-system-used-in-metal)   
 
 # Introduce
 Direct3D가 초기화되면 rendering을 시작한다. 따라서 rendering하기 위해 몇 가지 준비 작업이 필요하다.   
@@ -18,7 +19,9 @@ GPU가 최종 이미지를 생성할 memory 위치( back buffer )와 back buffer
 예를 들면, **많은 게임들은 model의 surface에 rendering 한 다음, 그 model을 back buffer에 rendering 한다**. 이러한 기술은 다양한 효과를 만들 수 있다. "포탈" 게임에서는 포탈에 먼저 rendering 한 다음, 포탈 이미지가 포함된 전체 장면을 rendering 한다.   
 즉, **back buffer에 직접 rendering 하지 않고 중간 단계의 surface에 rendering 함으로써 다양한 graphic 효과를 구현하고, 최종적으로 완성된 이미지를 화면에 출력**한다.   
 
-Direct3D에서 rendering을 하기 위해선 반드시 **render target을 지정**한다. 대부분의 경우 **이러한 render target은 back buffer를 의미**하고, 이는 rendering 할 video memory의 위치를 유지하는 간단한 **COM object**이다.   
+Direct3D에서 rendering을 하기 위해선 반드시 **render target을 지정**한다.   
+대부분의 경우 **이러한 render target은 back buffer를 의미**하고, 이는 rendering 할 video memory의 위치를 유지하는 간단한 **COM object**이다.   
+즉, **Render Target은 Graphics Pipeline이 최종적으로 image를 출력하는 surface를 말한다**. 
 
 즉, **video memory에 texture를 rendering하기 위해서 Render Target을 지정하는 방법**을 알아본다.   
 ```cpp
@@ -76,14 +79,20 @@ GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
 이 작업을 통해 **back buffer를 render target으로 설정하여, 우리가 그리는 모든 것이 back buffer에 rendering 되고, 나중에 화면에 표시**될 수 있게 한다.   
 
 # Setting the Viewport
-![alt text](Images/RenderingFrames/PixelCoordinatesAndNormalizedCoordinates.png)   
-**viewport는 pixel coordinates를 normalized coordinates로 변환하는 하나의 방법**이다.   
+[normalized device coordinates - stackoverflow](https://stackoverflow.com/questions/58702023/what-is-the-coordinate-system-used-in-metal)   
+![alt text](Images/RenderingFrames/PixelCoordinates.png)
+![alt text](Images/RenderingFrames/NormalizedDeviceCoordinates.png)   
+**viewport는 normalized device coordinates( NDC )를 pixel coordinates로 변환하는 하나의 방법**이다.   
+viewport는 render target 내에서 graphic이 rendering 되는 영역을 정의한다. 이는 3D rendering된 contents가 실제로 화면에 표시되는 영역을 정의한다.   
+즉, **3D world에서 camera를 통해 capture된 장면이 screen 상의 어느 부분에 보여질 것인지를 결정**한다.   
 
 **pixel coordinates는 the upper-left corner의 (0, 0)에서 시작하고, 한 칸에 한 pixel이 존재**한다.   
-**normalized coordinates는 (-1, -1)에서 시작하고, back buffer의 크기에 상관없이 (1, 1)까지 늘어난다**.   
+**NDC는 (-1, 1)에서 시작하고, back buffer의 크기에 상관없이 (1, -1)까지 늘어난다**.   
 여기서 normalized라는 용어는 값이 1이 될 때까지 조정된다는 의미다.   
 
-(-1, -1)과 (1, 1)이 무엇인지는 viewport에 따라 결정된다. viewport는 pixel coordinates에서 (-1, -1)과 (1, 1)의 위치를 설정할 수 있는 struct이다.   
+**(-1, 1)과 (1, -1)이 무엇인지는 viewport에 따라 결정**된다. viewport는 pixel coordinates에서 (-1, 1)과 (1, -1)의 위치를 설정할 수 있는 struct이다.   
+즉, **normalized device coordinates( NDC )를 pixel coordinates로 변환하는 역할**이다.   
+NDC는 viewport transformation을 통해 이 좌표들이 실제 pixel coordinates로 매핑된다.   
 ```cpp
 bool InitD3D( HWND hWnd ) {
   // Direct3D Initialization
@@ -106,6 +115,9 @@ bool InitD3D( HWND hWnd ) {
 ```
 `RRSetViewports()`는 viewport struct를 활성화하는 함수다.   
 첫 번째 인자는 사용하는 viewport의 번호를 나타내며, 두 번째 인자는 viewport struct의 pointers list를 가리키는 주소를 의미한다.   
+
+viewport의 `Width`와 `Height`는 render target( back buffer ) 내에서 rendering 되는 영역을 정의한다. 이러한 **두 멤버 변수는 NDC를 pixel coordinates로 변환할 때 사용**한다.   
+만약 swap chain의 back buffer의 크기와 viewport의 크기가 일치하지 않으면, rendering 된 이미지는 swap chain에 설정된 window size에 맞게 scaling 되거나 잘릴 수 있다.   
 
 # Rendering Frames
 이제 간단한 frame을 rendering하는 함수를 생성한다.   
