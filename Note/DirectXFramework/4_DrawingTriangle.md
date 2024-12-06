@@ -135,3 +135,163 @@ vertex shader COM object를 생성하고 간접적으로 접근하는 방법으�
 두 번째 인자는 `VS`에 대한 크기를 넘긴다. 네 번째 인자는 shader COM object에 대한 주소를 넘긴다.   
 
 이러면 `ID3D11VertexShader`와 `ID3D11PixelShader`에 compiled shader에 대한 주소를 통해 COM interface에 간접적으로 접근할 수 있다.   
+
+## 3. Set both shaders to be the active shaders
+```cpp
+// encapsulate both shaders into shader objects
+// ...
+
+// set the shader objects
+devcon->VSSetShader(pVS, 0, 0);
+devcon->PSSetShader(pPS, 0, 0);
+```
+`__SetShader()` 함수의 첫 인자는 설정할 shader object의 주소를 넘겨준다. 나머지는 나중에 살펴본다.   
+
+## 4. Release COM objects
+```cpp
+// CleanD3D()
+pVS->Release();
+pPS->Release();
+```
+세 단계를 거쳐서 GPU는 정점들을 rendered image로 변환하는 데 필요한 모든 지침을 받았다.   
+이제 삼각형을 위한 정점을 생성한다.   
+
+# Vertex Buffers
+**vertex란, 3D space에서 하나의 정확한 point에 대한 location과 properties를 정의**한다.   
+location은 세 개의 숫자로 구성되고, properties 또한 숫자 값으로 정의된다.   
+
+Direct3D는 **input layout**이라고 불리는 것을 사용한다. input layout은 **vertex의 location과 properties를 포함하는 layout of the data**이다. 이러한 layout은 우리의 필요에 의해 수정하고 설정할 수 있는 format of data이다.   
+
+하나의 vertex는 struct로 만들어지며, 이러한 구조체는 생성된 3D image에 관련된 데이터를 포함한다.   
+이러한 **image를 보여주기 위해서 GPU에게 모든 정보를 복사한 다음, Direct3D에 데이터를 back buffer에 rendering 하도록 명령**한다.   
+
+만약 하나의 vertex에 대해 필요한 모든 정보들을 보내야 한다면 어떻게 될까?   
+![alt text](Images/DrawingTriangle/SendVertexFormatToGPU.png)   
+여기서는 어떠한 문제가 발생하는지 바로 알 수 없다.   
+이러한 **vertex information 중 두 개의 data block만 보낸다고 가정하면, GPU에게 더 빠르게 정보를 보낼 수 있다**.   
+![alt text](Images/DrawingTriangle/SelectiveVertexFormat.png)   
+이러한 과정은 **input layout을 사용할 때 일어나는 일**이다.   
+즉, **사용하려는 정보를 선택하고 해당 정보만 GPU에게 전송하면, 각 frame 사이에 더 많은 vertices를 전송할 수 있다**.   
+
+## 1. Creating Vertices
+```cpp
+struct VERTEX {
+	FLOAT X, Y, Z;								// position
+	D3D11_VIDEO_COLOR_RGBA Color;	// color
+};
+```
+vertex에 대한 struct는 개발자가 원하는 데이터를 골라서 만들 수 있다.   
+```cpp
+VERTEX OurVertices[] = {
+	{ 0.0f, 0.5f, 0.0f, D3D11_VIDEO_COLOR_RGBA(1.0f, 0.0f, 0.0f, 1.0f) },
+	{ 0.45f, -0.5f, 0.0f, D3D11_VIDEO_COLOR_RGBA(0.0f, 1.0f, 0.0f, 1.0f) },
+	{ -0.45f, -0.5f, 0.0f, D3D11_VIDEO_COLOR_RGBA(0.0f, 0.0f, 1.0f, 1.0f) }
+};
+```
+위 vertices는 삼각형의 세 vertex를 의미한다. 이를 screen에 그려보자.   
+
+## 2. Creating a Vertex Buffer
+C++에서 하나의 struct를 생성할 때, 그 데이터는 system memory에 저장된다. 하지만 쉽게 접근할 수 없는 video memory에 생성한 데이터를 보내야 한다.   
+![alt text](Images/DrawingTriangle/VertexBufferMemory.png)   
+이처럼 **video memory에 접근하기 위해서 Direct3D는 COM object를 제공**한다. 이 객체는 **system과 video memory 모두에서 buffer를 유지**할 수 있다.   
+**rendering 과정에서 buffer에 있는 데이터를 필요로 할 때, Direct3D는 자동으로 그 데이터를 video memory로 복사**한다.   
+**만약 video card의 memory가 부족한 경우, Direct3D는 사용하지 않는 또는 낮은 우선순위의 buffer를 제거해서 memory를 확보**한다.   
+
+이러한 역할을 수행하는 COM object는 `ID3D11Buffer`이다. 이 객체를 생성하기 위해서 `CreateBuffer()` 함수를 사용한다.   
+```cpp
+ID3D11Buffer* pVBuffer; 		// global
+
+D3D11_BUFFER_DESC bd;
+ZeroMemory(&bd, sizeof(bd));
+
+bd.Usage = D3D11_USAGE_DYNAMIC;								// write access by CPU and GPU
+bd.ByteWidth = sizeof(VERTEX) * 3;						// size is the VERTEX struct * 3
+bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;			// use as a vertex buffer
+bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;		// allow CPU to write in buffer and 0 if no CPU access is necessary
+
+dev->CreateBuffer(&bd, NULL, &pVBuffer);			// create the buffer
+```
+`D3D11_BUFFER_DESC`는 buffer의 properties를 포함하는 struct이다.   
+
+buffer를 가능한 효율적으로 설정하기 위해서는 Direct3D는 buffer에 접근하는 방법을 알아야 한다.   
+| Flag | CPU Access | GPU Access |
+|:---:|:---:|:---:|
+| `D3D11_USAGE_DEFAULT` | None | READ / WRITE |
+| `D3D11_USAGE_IMMUTABLE` | None | READ only |
+| `D3D11_USAGE_DYNAMIC` | WRITE only | READ only |
+| `D3D11_USAGE_STAGING` | READ / WRITE | READ / WRITE |
+
+`ByteWidth`는 생성할 buffer의 size를 포함한다. 이 값은 buffer에 넣으려는 array of vertices와 같은 크기를 가진다.   
+
+`BindFlags` 값은 Direct3D에게 어떤 종류의 buffer를 만들 것인지 알려준다. vertex buffer는 `D3D11_BIND_VERTEX_BUFFER` flag를 사용한다.   
+
+`CPUAccessFlags`는 Direct3D가 CPU에 접근하는 방법을 알려줌으로써 usage flags에 명확성을 더한다. 여기서 사용할 flag는 `Usage`에서 사용한 flag와 일치하는 경우에만 사용할 수 있다.   
+`D3D11_CPU_ACCESS_WRITE`는 system memory를 buffer로 복사하기 위해 사용한다.   
+
+`device->CreateBuffer()`는 buffer를 생성하는 함수다.   
+첫 인자는 buffer struct에 대한 주소를 넘긴다. 두 번째 인자는 buffer 생성 시에 buffer를 특정 데이터로 초기화하는 데 사용할 수 있다. 세 번째 인자는 buffer object의 주소를 넘긴다.   
+여기서는 vertex buffer를 생성하여 이를 COM object로 가리킨다.   
+
+## 3. Filling the Vertex Buffer
+삼각형을 만들기 위한 vertices와 이를 저장하는 vertex buffer를 가졌다.   
+이제는 이러한 **vertices를 buffer에 복사하는 기능을 구현**한다.   
+
+하지만 Direct3D가 background에서 buffer에 대해 작업하고 있을 수 있으므로, Direct3D는 CPU가 그 buffer에 직접 접근하도록 허용하지 않는다. 그 buffer에 접근하기 위해서는 먼저 buffer를 mapping 해야 한다.   
+즉, **Direct3D가 CPU에서 buffer에 대해 진행 중인 모든 작업이 완료되도록 한 뒤, buffer가 unmapping 될 때까지 GPU가 그 buffer를 사용하는 것을 막는다**.   
+```
+1. Map the vertex buffer ( and thereby obtain the buffer's location ).
+2. data를 buffer에 복사한다( using memcpy() ).
+3. Unmap the buffer
+```
+```cpp
+D3D11_MAPPED_SUBRESOURCE ms;
+devcon->Map(pVBuffer, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);		// map the buffer
+memcpy(ms.pData, OurVertices, sizeof(OurVertices));									// copy the data
+devcon->Unmap(pVBuffer, NULL);																			// unmap the buffer
+```
+`D3D11_MAPPED_SUBRESOURCE`는 buffer를 mapping 한 후, 해당 buffer에 대한 정보를 채우는 struct이다.   
+이 정보에는 buffer's location에 대한 pointer를 포함한다. `ms.pData`를 통해 해당 pointer에 접근할 수 있다.   
+
+`DeviceContext->Map()`는 buffer에 접근하기 위해서 해당 buffer를 mapping 한다.   
+첫 인자는 buffer object의 주소를 넘긴다.   
+세 번째 인자는 buffer가 mapping 되어 있는 동안에 CPU가 해당 buffer에 접근할 수 있도록 제어하는 flag를 넘긴다. `D3D11_MAP_WRITE_DISCARD`는 이전 buffer의 내용은 지우고, 새로운 buffer를 열어서 쓸 수 있도록 한다.   
+네 번째 인자는 `NULL` 또는 `D3D11_MAP_FLAG_DO_NOT_WAIT` flag를 넘길 수 있다. 이는 program이 GPU가 buffer를 mapping 하는 중에도 계속 동작하도록 강제할 수 있다.   
+마지막 인자는 `D3D11_MAPPED_SUBRESOURCE` struct의 주소를 넘긴다.   
+
+이 함수는 마지막 인자의 struct를 채우는 데 필요한 정보를 제공한다.   
+
+`memcpy()`에서 `ms.pData`가 destination, `OurVertices`가 source, 그리고 `sizeof(OurVertices)`가 size이다.   
+
+`DeviceContext->Unmap()`은 buffer를 unmapping 한다. GPU가 buffer에 접근하도록 다시 허용하고, CPU를 buffer에 접근하지 못하도록 다시 차단한다.   
+
+```cpp
+// a struct to define a single vertex
+struct VERTEX { FLOAT X , Y , Z; D3D11_VIDEO_COLOR_RGBA Color; }
+ID3D11Buffer* pVBuffer;							// the pointer to vertex buffer
+
+void InitGraphics () {
+	// create a triangle
+	VERTEX OurVertices[] = {
+		{ 0.0f, 0.5f, 0.0f, D3D11_VIDEO_COLOR_RGBA ( 1.0f, 0.0f, 0.0f, 1.0f ) },
+		{ 0.45f, -0.5f, 0.0f, D3D11_VIDEO_COLOR_RGBA ( 0.0f, 1.0f, 0.0f, 1.0f ) },
+		{ -0.45f, -0.5f, 0.0f, D3D11_VIDEO_COLOR_RGBA ( 0.0f, 0.0f, 1.0f, 1.0f ) }
+	};
+
+	// create the vertex buffer
+	D3D11_BUFFER_DESC bd;
+	ZeroMemory ( &bd , sizeof ( bd ) );
+
+	bd.Usage = D3D11_USAGE_DYNAMIC;
+	bd.ByteWidth = sizeof ( VERTEX ) * 3;
+	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+	dev->CreateBuffer ( &bd , NULL , &pVBuffer );		// create the buffer
+
+	// copy the vertices into the buffer
+	D3D11_MAPPED_SUBRESOURCE ms;
+	devcon->Map ( pVBuffer , NULL , D3D11_MAP_WRITE_DISCARD , NULL , &ms );
+	memcpy ( ms.pData , OurVertices , sizeof ( OurVertices ) );
+	devcon->Unmap ( pVBuffer , NULL );
+}
+```
