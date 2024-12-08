@@ -140,8 +140,8 @@ bool InitD3D ( HWND hWnd ) {
 	ZeroMemory ( &viewPort , sizeof ( D3D11_VIEWPORT ) );
 	viewPort.TopLeftX = 0;
 	viewPort.TopLeftY = 0;
-	viewPort.Width = 1280;
-	viewPort.Height = 960;
+	viewPort.Width = SCREEN_WIDTH;
+	viewPort.Height = SCREEN_HEIGHT;
 	devcon->RSSetViewports ( 1 , &viewPort );
 
 	InitPipeline ();
