@@ -1,3 +1,30 @@
+- [Introduce](#introduce)
+- [Using Shaders](#using-shaders)
+	- [1. Load and compile the two shaders from the .shader file( .hlsl )](#1-load-and-compile-the-two-shaders-from-the-shader-file-hlsl-)
+		- [error handling](#error-handling)
+	- [2. Encapsulate both shaders into shader objects](#2-encapsulate-both-shaders-into-shader-objects)
+	- [3. Set both shaders to be the active shaders](#3-set-both-shaders-to-be-the-active-shaders)
+	- [4. Release COM objects](#4-release-com-objects)
+- [Vertex Buffers](#vertex-buffers)
+	- [1. Creating Vertices](#1-creating-vertices)
+	- [2. Creating a Vertex Buffer](#2-creating-a-vertex-buffer)
+	- [3. Filling the Vertex Buffer](#3-filling-the-vertex-buffer)
+- [Verifying the Input Layout](#verifying-the-input-layout)
+	- [1. Create the Input Elements](#1-create-the-input-elements)
+	- [2. Create the Input Layout Object](#2-create-the-input-layout-object)
+- [Drawing the Primitive](#drawing-the-primitive)
+	- [1. `IASetVertexBuffers()`](#1-iasetvertexbuffers)
+	- [2. `IASetPrimitiveTopology()`](#2-iasetprimitivetopology)
+	- [3. Draw()](#3-draw)
+- [A Quick Review](#a-quick-review)
+	- [1. Using Shaders](#1-using-shaders)
+	- [2. Vertex Buffer](#2-vertex-buffer)
+	- [3. Verifying the Input Layout](#3-verifying-the-input-layout)
+	- [4. Drawing the Primitive](#4-drawing-the-primitive)
+- [Final Code](#final-code)
+
+<br><br>
+
 [Drawing a Triangle - DirectXTutorial](http://www.directxtutorial.com/Lesson.aspx?lessonid=11-4-5)   
 [How To: Compile a Shader - MS Learn](https://learn.microsoft.com/en-us/windows/win32/direct3d11/how-to--compile-a-shader)   
 [ID3DBlob interface - MS Learn](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/legacy/ff728743(v=vs.85))   
@@ -73,12 +100,12 @@ vertex shader는 `"vs_5_0"`이고, pixel shader는 `"ps_5_0"`이다. "vs"는 ver
 `**ppErrorMsgs`는 compiler error messages에 접근하는 데 사용할 수 있는 `ID3DBlob` interface에 대한 pointer를 받는 변수에 대한 pointer이다.   
 optional pointer이기 때문에 error가 발생하지 않으면 `NULL`이다.   
 ```cpp
-void InitPipeline (const std::wstring& VSFilename, const std::wstring& PSFilename) {
+void InitPipeline () {
 	// load and compile the two shaders
 	ID3DBlob* VS , * PS;
 	ID3DBlob* VSErrorBlob, * PSErrorBlob;
-	HRESULT vsHr = D3DCompileFromFile ( VSFilename.c_str () , 0 , 0 , "main" , "vs_5_0" , 0 , 0 , &VS , &VSErrorBlob );
-	HRESULT psHr = D3DCompileFromFile ( PSFilename.c_str () , 0 , 0 , "main" , "ps_5_0" , 0 , 0 , &VS , &PSErrorBlob );
+	HRESULT vsHr = D3DCompileFromFile ( L"Shader.hlsl" , 0 , 0 , "VShader" , "vs_5_0" , 0 , 0 , &VS , &VSErrorBlob );
+	HRESULT psHr = D3DCompileFromFile ( L"Shader.hlsl" , 0 , 0 , "PShader" , "ps_5_0" , 0 , 0 , &VS , &PSErrorBlob );
 }
 ```
 vertex shader의 경우, `{VSFilename}.hlsl` 파일을 load 한 후, 여기서 "main" 함수를 찾아 HLSL version 5.0으로 compile 한 후 결과를 `ID3DBlob`인 `VS`에 저장한다.   
@@ -294,4 +321,206 @@ void InitGraphics () {
 	memcpy ( ms.pData , OurVertices , sizeof ( OurVertices ) );
 	devcon->Unmap ( pVBuffer , NULL );
 }
+```
+
+# Verifying the Input Layout
+지금까지 정리하면, 
+1. pipeline을 제어하기 위해서 shaders를 load 하고 set 했다.
+2. vertices를 사용하여 shape를 생성하고, 이를 GPU가 사용할 수 있도록 준비했다.
+
+user-defined struct에 vertices를 저장했을 때, GPU가 어떻게 이러한 정점들을 읽을 수 있는 능력이 있는지?   
+struct에 color 전에 location을 먼저 배치한 것을 어떻게 알 수 있나?   
+다른 의도가 없다는 것을 어떻게 알 수 있나?   
+위 답은 "input layout" 이다.   
+
+input layout은 vertex struct의 layout을 포함하는 object이다.   
+`ID3D11InputLayout` object는 우리의 `VERTEX` struct layout을 저장한다. 이 object는 `CreateInputLayout()`에서 생성한다.   
+
+## 1. Create the Input Elements
+vertex layout은 하나 또는 더 많은 input elements로 구성된다. 하나의 input element는 vertex의 하나의 property를 나타낸다. 예를 들면, position과 color가 있다.   
+각 element는 `D3D11_INPUT_ELEMENT_DESC`라는 struct에 정의된다. 이 구조체는 하나의 vertex property를 설명한다.   
+```cpp
+D3D11_INPUT_ELEMENTS_DESC ied[] = {
+	{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+};
+```
+해당 구조체는 7개의 value를 요구한다.   
+
+**첫 인자는 semantic name**이다. semantic은 GPU에게 struct가 사용되는 용도를 알려주는 문자열이다.   
+
+**두 번째 인자는 같은 semantic name을 가진 복수의 properties를 구분하기 위한 semantic index**이다.   
+하나의 vertex가 여러 개의 color를 가진다면, 둘 다 `COLOR` semantic name을 사용한다. 이러한 혼란을 피하기 위해서 우리는 각 property에 다른 숫자를 부여한다.   
+
+**세 번째 인자는 데이터의 format( 형식 )**이다. vertex data의 memory 내 저장 형식과 해석 방식을 결정한다.   
+`DXGI_FORMAT_R32G32B32_FLOAT`는 3차원 vector<float>에 RGBA가 32bit로 저장된다.   
+
+**네 번째 인자는 input slot**이다.   
+
+**다섯 번째 인자는 해당 element가 vertex struct 내에서 시작하는 byte 위치를 지정**한다.   
+이는 offset이라 부르며, position의 0 offset은 시작 byte 위치를 나타내고 color 또한 12 offset에서 시작한다는 의미다.   
+`D3D11_APPEND_ALIGNED_ELEMENT`를 넣으면 알아서 byte offset을 계산한다.   
+
+**여섯 번째 인자는 input slot class로, 해당 input element가 정점 당( vertex data of per-vertex ) 데이터인지, per-instance 데이터인지를 나타낸다**.   
+
+마지막 인자는 사용하지 않기 때문에 0으로 세팅한다.   
+
+## 2. Create the Input Layout Object
+vertex format을 나타내는 object를 생성한다.   
+```cpp
+HRESULT CreateInputLayout (
+	D3D11_INPUT_ELEMENT_DESC* pInputElementDescs,
+	UINT NumElements,
+	void* pShaderBytecodeWithInputSignature,
+	SIZE_T BytecodeLength,
+	ID3D11InputLayout** pInputLayout
+);
+```
+`D3D11_INPUT_ELEMENT_DESC*`는 element description array에 대한 pointer이다.   
+`NumElements`는 array size를 나타낸다.   
+`pShaderBytecodeWithInputSignature`는 pipeline의 vertex shader에 대한 pointer를 나타낸다.   
+`BytecodeLength`는 shader file의 길이를 나타낸다.   
+`ID3D11InputLayout**`는 input layout object에 대한 pointer이다.   
+```cpp
+ID3D11InputLayout* pLayout;		// global
+
+void InitPipeline(const std::wstring& VSFilename, const std::wstring& PSFilename) {
+	// load and compile the two shaders
+
+	// encapsulate both shaders into shader objects
+
+	// set the shader objects
+
+	// create the input layout object
+	D3D11_INPUT_ELEMENTS_DESC ied[] = {
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+	dev->CreateInputLayout(ied, 2, VS->GetBufferPointer(), VS->GetBufferSize(), &pLayout);
+	devcon->IASetInputLayout(pLayout);
+}
+```
+VS의 file( `GetBufferPointer()` )와 size( `GetBufferSize()`)에 접근할 필요가 있기 때문에 `InitPipeline()`에 작성한다.   
+이러한 Input Layout을 생성해도 해당 object의 세팅이 완료될 때까지는 아무런 동작을 할 수 없다. 따라서 `IASetInputLayout()`을 호출하여 설정을 완료한다.   
+
+# Drawing the Primitive
+rendering을 하기 위한 3가지 함수에 대해 알아본다.   
+첫 번째 함수는 우리가 사용할 vertex buffer를 세팅한다. 두 번째 함수는 우리가 사용할 primitive TYPE을 세팅한다. 세 번째 함수는 shape를 그린다.   
+
+## 1. `IASetVertexBuffers()`
+rendering 할 때 GPU에게 어떤 vertices를 읽어야 할 지 알려준다.   
+```cpp
+void IASetVertexBuffers(
+	UINT StartSlot,
+	UINT NumBuffers,
+	ID3D11Buffer** ppVertexBuffers,
+	UINT* pStrides,
+	UINT* pOffsets
+);
+```
+`NumBuffers`는 세팅할 buffer의 개수를 말한다.   
+`ID3D11Buffer**`는 vertex buffer array에 대한 pointer이다.   
+`*pStrides`는 `UINT` array를 가리킨다. 이러한 array는 각 vertex buffer에 있는 단일 vertex의 크기를 알려준다.   
+이 인자를 채우려면 `UINT`를 생성하고, `sizeof(VERTEX)`로 채운 다음 여기에 해당 `UINT`에 대한 주소를 넣는다.   
+`*pOffsets`는 rendering을 시작할 vertex buffer의 bytes 수를 알려주는 `UINT` 배열이다. 이 또한 `*pStrides`처럼 사용한다.   
+```cpp
+UINT stride = sizeof(VERTEX);
+UINT offset = 0;
+devcon->IASetVertexBuffers(0, 1, &pBuffer, &stride, &offset);
+```
+
+## 2. `IASetPrimitiveTopology()`
+우리가 사용할 primitive TYPE이 무엇인지 Direct3D에게 알려준다.   
+이 함수는 하나의 flag만 인자로 받는다.   
+```cpp
+devcon->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+```
+
+## 3. Draw()
+이제 Direct3D가 vertex buffer에 있는 contents를 그리도록 만든다.   
+이 함수는 vertex buffer에 있는 primitives를 back buffer에 그린다.   
+```cpp
+void Draw(
+	UINT VertexCount,						// the number of vertices to be drawn
+	UINT StartVertexLocation,		// the first vertex to be drawn
+);
+```
+첫 인자는 그려야 할 vertices의 수를 나타내며, 두 번째 인자는 buffer의 첫 vertex의 번호를 말한다.   
+```cpp
+devcon->Draw(3, 0);			// draw 3 vertices, starting from vertex 0
+```
+
+```cpp
+void RenderFrame() {
+	// clear the back buffer to a deep blue
+
+	// select which vertex buffer to display
+	UINT stride = sizeof(VERTEX);
+	UINT offset = 0;
+	devcon->IASetVertexBuffers(0, 1, &pVBuffer, &stride, &offset);
+
+	// select which primitive type we are using
+	devcon->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	// draw the vertex buffer to the back buffer
+	devcon->Draw(3, 0);
+
+	// switch the back buffer and the front buffer
+}
+```
+
+# A Quick Review
+## 1. Using Shaders
+Shaders는 rendering에서 GPU에 명령하는 작은 프로그램이다. Rendering은 shaders 없이는 불가능하다.   
+따라서 우리가 사용할 shaders를 가져와서 GPU에 load 했다.   
+```cpp
+void InitPipeline();
+```
+해당 함수에서 수행한 세 과정을 살펴본다.
+```
+1. 사용할 shaders를 load 하고 compile 했다.
+2. 각 shaders에 대한 object를 생성한다.
+3. 생성한 object를 세팅한다.
+```
+
+## 2. Vertex Buffer
+하나의 vertex를 표현하는 struct와 Vertex Buffer Object를 생성했다.   
+여기서 vertex buffer object는 video memory에 있는 vertices를 다룰 수 있다.   
+```cpp
+void InitGraphics();
+```
+해당 함수에서 수행한 세 과정을 살펴본다.
+```
+1. position과 color를 가진 세 vertices를 생성했다.
+2. vertex buffer object를 생성했다.
+3. vertices를 vertex buffer에 복사하기 위해서 해당 buffer를 매핑하고, 이 과정이 끝난 후 언-매핑을 수행했다.
+```
+
+## 3. Verifying the Input Layout
+input layout을 사용하여 vertex buffer와 shader를 조정하는 방법에 대해 알아봤다.   
+```cpp
+void InitPipeline();
+```
+이 함수에서 수행한 세 과정을 살펴본다.
+```
+1. position과 color에 대한 input elements description array를 생성했다.
+2. shader 정보를 사용해서 input layout object를 생성했다.
+3. input layout object를 세팅했다.
+```
+
+## 4. Drawing the Primitive
+최종 목표인 삼각형을 그려봤다.   
+```cpp
+void RenderFrame();
+```
+이 함수에서 세 과정을 살펴본다.
+```
+1. 사용할 vertex buffer를 지정한다.
+2. 사용할 primitive TYPE을 설정한다.
+3. 삼각형을 그린다.
+```
+
+# Final Code
+```cpp
+
 ```
