@@ -201,7 +201,7 @@ header file은 선언을 포함하기 때문에 함수의 시그니처를 알 �
 `#pragma comment` 지시자의 첫 인자로 `lib`를 지정하면, project에 library 파일을 추가할 것을 나타낸다. 두 번째 인자는 어떤 `.lib` 파일을 지정할지 명확히 알려준다.   
 
 # Closing Direct3D
-Direct3D는 생성될 때마다 종료해야 한다.   
+Direct3D는 하나의 독립된 Engine Process를 말하는 것이 아니라, COM interface 형태로 제공되는 여러 객체들의 집합이기 때문에, Direct3D를 종료한다는 의미는 곧, **Direct3D에서 생성한 COM object를 정리하고 해제한다**는 의미다.   
 ```cpp
 // this is the function that cleans up Direct3D and COM
 void CleanD3D() {
@@ -212,7 +212,6 @@ void CleanD3D() {
 }
 ```
 생성한 interface( ID3D11Device, ID3D11DeviceContext, IDXGISwapChain )에 대해 각각 Release() 함수를 호출한다.   
-**COM objects를 생성하고 이를 close하지 않으면, program을 종료하더라도 컴퓨터를 재부팅할 때까지 계속 background에 존재**한다.   
 
 # Final Code
 ```cpp
