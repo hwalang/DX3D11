@@ -27,17 +27,14 @@ device->Release();
 
 ## COM object에 대해 꼭 알아야 할 네 가지 사항
 COM의 역할은 이것이 수행하는 복잡한 로직을 숨기는 것이지만, **꼭 알아야 할 네 가지 사항**이 있다.   
-```
-1. COM objects는 interface를 제어하기 위한 class 또는 set of classes이다. interface는 COM object를 제어하기 위한 function을 가진다. 예를 들면, device는 COM object이고, member function은 이러한 device를 제어한다.
 
-2. 각 COM objects는 unique ID를 가진다. Direct3D는 자신만의 ID를 가지고 있으며, DirectSound object 또한 마찬가지다. 때때로 이러한 ID가 필요하다.
+1. **COM objects는 interface를 제어하기 위한 class 또는 set of classes**이다. interface는 COM object를 제어하기 위한 function을 가진다. 예를 들면, device는 COM object이고, member function은 이러한 device를 제어한다.
 
-3. 하나의 COM object를 다 사용했으면, 항상 Release() 함수를 호출해야만 한다. 이 함수는 COM object에게 memory와 자신을 담당했던 threads를 해제하도록 명령한다.
+2. **각 COM objects는 unique ID를 가진다**. Direct3D는 자신만의 ID를 가지고 있으며, DirectSound object 또한 마찬가지다. 때때로 이러한 ID가 필요하다.
 
-4. Direct3D에서 제공하는 COM object는 쉽게 알아차릴 수 있다. "ID3D11Device"처럼 이름 맨 앞에 "I"가 존재하기 때문이다. 
-```
+3. **하나의 COM object를 다 사용했으면, 항상 Release() 함수를 호출**해야만 한다. 이 함수는 COM object에게 memory와 자신을 담당했던 threads를 해제하도록 명령한다.
 
-
+4. **Direct3D에서 제공하는 COM object는 쉽게 알아차릴 수 있다**. "ID3D11Device"처럼 이름 맨 앞에 "I"가 존재하기 때문이다. 
 
 # ComPtr
 `ComPtr`은 COM object에 대해 C++의 smart pointer처럼 동작하는 template이다.   
