@@ -2,6 +2,7 @@
 - [Direct3D Headers \& Global Variables](#direct3d-headers--global-variables)
 	- [Device와 Device Context](#device와-device-context)
 - [Launching Direct3D](#launching-direct3d)
+	- [이중 포인터의 이해](#이중-포인터의-이해)
 	- [D3D11CreateDeviceAndSwapChain() error LNK2019](#d3d11createdeviceandswapchain-error-lnk2019)
 - [Closing Direct3D](#closing-direct3d)
 - [Final Code](#final-code)
@@ -135,7 +136,7 @@ HRESULT D3D11CreateDeviceAndSwapChain(
   ID3D11DeviceContext** ppDeviceContext // Returns the device immediate context.
 );
 ```
-`IDXGIAdapter*`는 Direct3D가 사용하는 graphics adapter가 무엇인지를 나타낸다. graphics adapter는 일반적으로 GPU와 GPU의 video memory 등을 말한다. **대부분의 경우 GPU가 하나만 있기 때문에 DXGI가 알아서 처리( default adapter )하도록 `NULL` 값으로 설정**한다.   
+`IDXGIAdapter*`는 Direct3D가 사용하는 graphics adapter가 무엇인지를 나타낸다. **대부분의 경우 GPU가 하나만 있기 때문에 DXGI가 알아서 처리( default adapter )하도록 `NULL` 값으로 설정**한다.   
 
 `D3D_DRIVER_TYPE`은 Direct3D가 rendering에 hardware를 사용할지, software를 사용할지 결정한다.   
 ```
@@ -172,6 +173,16 @@ const D3D_FEATURE_LEVEL featureLevels[2] = {
 `ID3D11Device**`는 이 함수가 생성하는 device의 주소를 pointer로 초기화한다.   
 `D3D_FEATURE_LEVEL*`는 feature level variable을 가리킨다. 이 함수가 완료되면 발견된 가장 높은 feature level flag로 초기화된다. 여기선 `D3D_FEATURE_LEVEL_11_0`가 가장 높은 version이다.   
 `ID3D11DeviceContext**`는 device context object에 대한 주소를 가리키는 pointer를 초기화한다.   
+
+## 이중 포인터의 이해
+C/C++ 함수에서 object나 interface를 생성하고, 그 결과를 호출자에게 반환할 때 흔히 사용된다.   
+`D3D11CreateDeviceAndSwapChain` 함수는 내부적으로 device, device context, swap chain 객체를 생성한 뒤, 호출자가 전달한 이중 포인터를 이용해 그 객체의 주소를 반환한다.   
+
+`IDXGISwapChain**`는 `IDXGISwapChain*`를 가리키는 포인터다. 즉, `ppSwapChain`을 통해 함수 외부의 `IDXGISwapChain*` 변수에 간접적으로 접근할 수 있다.   
+참고로 함수 인자로 받는 포인터( * )는 "value"로 복사되기 때문에 `IDXGISwapChain* pSwapChain` 같은 형태로 인자를 받으면, 함수 내부에서 `pSwapChain`에 값을 할당해도 호출자 쪽의 `pSwapChain` 변수 자체는 변경되지 않는다.   
+하지만 이중 포인터로 받으면, 함수는 `ppSwapChain`을 통해 호출자의 `ppSwapChain` 변수에 직접 접근할 수 있다.   
+
+즉, **이중 포인터는 함수가 호출자에게 동적으로 생성된 object나 interface의 주소를 돌려주기 위해 사용되는 기법**이다.   
 
 ## D3D11CreateDeviceAndSwapChain() error LNK2019
 ```
