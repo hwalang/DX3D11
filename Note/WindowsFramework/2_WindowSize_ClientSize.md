@@ -8,7 +8,7 @@
 [Window Size and Client Size - DirectXTutorial](http://www.directxtutorial.com/Lesson.aspx?lessonid=11-1-4)   
 
 # Introduce
-window창의 크기가 아닌 DirectX를 그리는 창의 크기를 정확하게 설정하는 함수를 알아본다.   
+window창의 크기가 아닌 DirectX를 그리는 창( Client )의 크기를 정확하게 설정하는 함수를 알아본다.   
 
 # Window Size vs Client Size
 `CreatingWindowEx()`에서 window size를 1280 x 960으로 저장했다.   
@@ -20,6 +20,10 @@ Rendering을 할 때는 client에서만 그리기 때문에 정확한 client siz
 그렇지 않으면 client area와 다른 크기를 가진 image를 그릴 때, client size와 맞추기 위해 image가 stretched( 늘어난 ) 또는 shrunk( 축소된 )되어 그려진다.   
 
 # The `AdjustWindowRect()` Function
+**client area는 application content를 표기할 수 있는 영역을 의미**한다.   
+**window decorations는 title bar, border, scrollbar 등 client area 밖에 존재하며, 이러한 decorations가 표시될 때 client area에 영향**을 준다.   
+**RECT 구조체는 window area를 나타내는 데 사용되는 struct**이다.   
+
 Rather than setting the window size and then determining the client size, it is ideal to determine the client size in advance, and then calculate the appropriate window size.   
 To do this we will use the function `AdjustWindowRect()` before creating the window.   
 ```cpp
@@ -31,14 +35,9 @@ typedef struct RECT {
 };
 
 BOOL AdjustWindowRect( LPRECT lpRect, DWORD dwStyle, BOOL bMenu );
-```
-첫 번째 인자로 `RECT` struct의 pointer를 받는다. 이 pointer가 가리키는 `RECT`에는 원하는 client area의 좌표를 포함하고 있다. 함수가 호출되면, `RECT` struct는 window area 좌표를 포함하도록 수정된다.   
-즉, **우리가 원하는 client size를 `RECT`에 지정하고, 이를 `AdjustWindowRect` 함수가 client area에 맞추어 window size를 조정**한다.   
 
-두 번째 인자는 window sytle이다. window border의 크기를 결정하기 위해서 이 데이터를 사용한다.   
+// ---------------------------------------------------------------------------
 
-세 번째 인자는 menu를 사용할지 말지를 결정하는 BOOL 값이다.   
-```cpp
 RECT wr = { 0, 0, 1280, 960 };    // set the size, but not the position
 AdjustWindowRect( &wr, WS_OVERLAPPEDWINDOW, FALSE );    // adjust the size
 
@@ -56,9 +55,14 @@ mainWindow = CreatingWindowEx( NULL,
                                NULL
 );
 ```
-`RECT wr`라는 사각형을 생성하고, 원하는 client area 크기로 초기화한다.   
-`wr.right - wr.left`와 `wr.bottom - wr.top`는 window의 width와 height size를 결정한다.   
+`AdjustWindowRect()` 함수는 **지정한 client area를 목표 크기로 가정하고, 해당 window style에 맞추어 실제 window rectangle을 계산**한다.   
+`AdjustWindowRect()` 호출 전에는 `wr`이 client area를 의미하지만, 호출 후의 `wr`은 client area를 만족하기 위해 필요한 실제 window size를 나타내는 `RECT` 구조체가 된다.   
+즉, `RECT wr`은 client area 영역을 나타내다가 함수를 호출한 후에는 `wr`이 실제 window size를 의미한다.   
+간단히 말하면, 원하는 client area를 기준으로 실제 window size를 계산하기 위해 사용한다.   
 
+**첫 번째 인자로 `RECT` struct의 주소**를 받는다. `RECT`는 원하는 client area가 저장됐다. 호출 후에는 client area를 고려한 window size를 `RECT`에 저장한다.   
+**두 번째 인자는 window sytle**이다. window border의 크기를 결정하기 위해서 이 데이터를 사용한다. 이는 window decorations의 크기 반영을 위해 사용한다.   
+**세 번째 인자는 menu를 사용할지 말지를 결정하는 BOOL 값**이다.   
 
 # Final Code
 ```cpp
