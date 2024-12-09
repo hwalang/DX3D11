@@ -58,7 +58,7 @@ mainWindow = CreatingWindowEx( NULL,
 `AdjustWindowRect()` 함수는 **지정한 client area를 목표 크기로 가정하고, 해당 window style에 맞추어 실제 window rectangle을 계산**한다.   
 `AdjustWindowRect()` 호출 전에는 `wr`이 client area를 의미하지만, 호출 후의 `wr`은 client area를 만족하기 위해 필요한 실제 window size를 나타내는 `RECT` 구조체가 된다.   
 즉, `RECT wr`은 client area 영역을 나타내다가 함수를 호출한 후에는 `wr`이 실제 window size를 의미한다.   
-간단히 말하면, 원하는 client area를 기준으로 실제 window size를 계산하기 위해 사용한다.   
+간단히 말하면, **원하는 client area와 window style을 고려해서 실제 window size를 계산**한다.   
 
 **첫 번째 인자로 `RECT` struct의 주소**를 받는다. `RECT`는 원하는 client area가 저장됐다. 호출 후에는 client area를 고려한 window size를 `RECT`에 저장한다.   
 **두 번째 인자는 window sytle**이다. window border의 크기를 결정하기 위해서 이 데이터를 사용한다. 이는 window decorations의 크기 반영을 위해 사용한다.   
