@@ -261,7 +261,7 @@ int main ()
 		NULL ,                 // we have no parent window
 		NULL ,                 // we aren't using menus
 		wc.hInstance ,         // apllication handle
-		NULL									 // used with multiple windows
+		NULL	// used with multiple windows
 	);
 
 	if ( !mainWindow ) {
