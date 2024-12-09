@@ -175,10 +175,9 @@ LRESULT CALLBACK WndProc( HWND hwnd , UINT msg , WPARAM wParam , LPARAM lParam )
 ```
 `MSG` struct에 대한 4가지 인자를 받는다. 자세히 다루지 않는다.   
 `WndProc`가 message를 받았다면, 해당 message가 무엇인지 결정하기 위해서 많은 프로그래머들이 switch()를 사용한다.   
-`LRESULT`로 0이 전달되면, `WndProc`를 종료하고 message 처리가 완료됐음을 OS에 알린다.   
 
-`PostQuitMessage()`는 `WM_QUIT` message를 0과 함께 보낸다. 0이 반환되면 `GetMessage()` function은 `WM_QUIT` 경우처럼 `FALSE`를 반환한다.   
-0이 아닌 다른 값을 반환하면, Windows가 혼동을 일으키기 때문에 주의한다.   
+**`WndProc`이 `0`을 반환하면, 일반적으로 Windows OS에게 현재 message를 처리 완료했다는 의미로 사용**한다.   
+`PostQuitMessage()`는 Window Event Queue에 `WM_QUIT`를 Post하는 역할이다. 이때, argument `0`은 `WM_QUIT` message의 `wParam` 값으로써, 일반적으로 app 종료 코드를 나타낸다. Event Queue에서 `PostQuitMessage()`로 전달한 `WM_QUIT`가 꺼내질 때, `GetMessage()` 함수는 0을 반환하여 main loop가 종료된다.   
 
 `DefWindowProc()`는 우리가 다루지 않는 message를 handling 한다.   
 
