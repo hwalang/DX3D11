@@ -1,7 +1,8 @@
 - [Introduce](#introduce)
 - [Direct3D Headers \& Global Variables](#direct3d-headers--global-variables)
+	- [Device와 Device Context](#device와-device-context)
 - [Launching Direct3D](#launching-direct3d)
-  - [D3D11CreateDeviceAndSwapChain() error LNK2019](#d3d11createdeviceandswapchain-error-lnk2019)
+	- [D3D11CreateDeviceAndSwapChain() error LNK2019](#d3d11createdeviceandswapchain-error-lnk2019)
 - [Closing Direct3D](#closing-direct3d)
 - [Final Code](#final-code)
 
@@ -11,39 +12,58 @@
 Direct3D program으로 "Hello World"처럼 기본적인 화면을 띄워본다.   
 
 # Direct3D Headers & Global Variables
+아래 메모는 `d3dx11.h`를 사용하지 않음으로써 잠시 주석처리한다.   
+*`d3dx11.h`는 Graphic library에는 필요하지 않지만, 게임이나 기타 그래픽 프로그램을 작성할 때 유용하게 사용할 수 있는 Direct3D의 확장 기능을 포함한다.   
+이러한 header files는 모든 compiler가 인지하지 않는다. 특히 visual studio는 `d3dx11.h`를 찾지 못한다. 이러한 error를 고치기 위해서 **DirectX SDK를 포함하고 있는 folder 경로를 visual studio project에 포함하도록 설정**해야 한다.*   
 ```cpp
 // include the basic windows header files and the Direct3D header files
 #include <d3d11.h>
-#include <d3dx11.h>
+#include <d3dcompiler.h>
 
 // include the Direct3D Library file
 #pragma comment (lib, "d3d11.lib")
-#pragma comment (lib, "d3dx11.lib")
-#pragma comment (lib, "d3d11.lib")
+#pragma comment (lib, "d3dcompiler.lib")
 
 // global declarations
 IDXGISwapChain* swapChain;      // the pointer to the swap chain interface
 ID3D11Device* dev;              // the pointer to our Direct3D device interface
-ID3D11DeviceContext* devcon;    // the pointer to our Direct3D device context
+ID3D11DeviceContext* devcon;    // the pointer to our Direct3D device context interface
 
 // function prototypes
 void InitD3D( HWND hWnd );      // sets up and initializes Direct3D
 void CleanD3D( void );          // closes Direct3D and releases memory
 ```
-window 관련 header와 function prototype은 생략했다.   
+`d3d11.h`는 Direct3D의 핵심 header files를 포함한다.   
 
-`d3d11.h`는 Direct3D의 핵심 header files를 포함한다. `d3dx11.h`는 Graphic library에는 필요하지 않지만, 게임이나 기타 그래픽 프로그램을 작성할 때 유용하게 사용할 수 있는 Direct3D의 확장 기능을 포함한다.   
-이러한 header files는 모든 compiler가 인지하지 않는다. 특히 visual studio는 `d3dx11.h`를 찾지 못한다. 이러한 error를 고치기 위해서 **DirectX SDK를 포함하고 있는 folder 경로를 visual studio project에 포함하도록 설정**해야 한다.   
+`ID3D11Device* dev`는 device에 대한 pointer이다. **device는 Direct3D에서 video adapter( graphics device )를 추상화하여 제어하고 관리하는 역할을 하는 COM 객체**다.   
+**video adapter는 컴퓨터에 장착된 grapchis card 혹은 GPU와 같은 그래픽 연산 hardware를 말한다**.   
+즉, `ID3D11Device`는 실제 video adapter에 접근하지 않고도 graphic resources를 생성하고, rendering pipeline을 설정하며, GPU 연산을 관리할 수 있게 해주는 Handle 역할을 수행하는 추상화된 interface object라 할 수 있다.   
 
-`ID3D11Device* dev`는 device에 대한 pointer이다. **device는 Direct3D에서 video adapter( graphics device )를 추상화한 COM  객체**다. 이 코드는 ID3D11Device라는 COM object를 생성한다.   
-여기서 중요한 점은 **COM 객체를 직접 생성하거나 다루는 것이 아니라, COM 객체를 가리키는 pointer를 통해 접근한다는 점**이다. COM에서는 객체의 실제 구현을 감추고, interface를 통해서만 접근하도록 설계 원칙을 정했기 때문이다.   
-이러한 **device는 주로 video memory를 처리**한다.   
+여기서 중요한 점은 **COM 객체를 직접 생성하거나 다루는 것이 아니라, COM 객체를 가리키는 pointer를 통해 접근한다는 점**이다.   
+COM에서는 객체의 실제 구현을 감추고, interface를 통해서만 접근하도록 설계 원칙을 정했기 때문이다.   
 
-`ID3D11DeviceContext* devcon`는 device처럼 pointer로 device context 객체에 간접적으로 접근한다. **device context는 GPU와 rendering pipeline을 관리**한다. 이 객체는 **graphic을 rendering하고, rendering 하는 방법을 결정하는 데 사용**한다.   
+`ID3D11DeviceContext* devcon`는 device처럼 pointer로 device context 객체에 간접적으로 접근한다.   
+이러한 **Device Context는 GPU 연산을 실제로 실행**하며, 이를 나타내는 interface object가 `ID3D11DeviceContext`이다.   
 
 [ GraphicsConcepts.md - The Swap Chain ](GraphicsTheory/GraphicsConcpets.md/#the-swap-chain)   
 `IDXGISwapChain* swapchain`는 각 chain에 대한 pointer이다. swap chain은 번갈아 가며 rendering되는 buffer다.   
 이 객체는 Direct3D에 속하지 않지만, 실제로 Direct3D의 기반이 되는 DXGI의 일부다.   
+
+## Device와 Device Context
+**`ID3D11Device`는 GPU와 관련된 resources를 관리하고 생성하는 역할**이다.   
+이를 통해 buffer, texture, shader와 같은 graphic resources를 할당하거나, 다양한 render states( rasterizer, blend, depth-stencil, sampler states )를 정의할 수 있다.   
+**`ID3D11DeviceContext`는 이렇게 준비된 resources를 실제로 GPU command queue에 전달하고, rendering pipeline을 설정 및 실행하는 역할**이다.   
+즉, rendering command를 기록하고 발행( issue )해서 GPU가 화면에 그림을 그리도록 하는 interface이다.   
+
+
+다시 정리하면, **Device( `ID3D11Device` )가 hardware와 resources를 축상화해 놓은 플랫폼**이라면, **Device Context( `ID3D11DeviceContext` )는 그 플랫폼 위에서 실제 rendering commands( 명령 )과 state 설정을 수행하고, 그 결과를 GPU가 실행하도록 지시하는 작업 현장**이다.   
+즉, `ID3D11DeviceContext`는 `ID3D11Device`가 제공하는 자원과 기능을 실제 rendering에 활용하기 위해 GPU에 명령을 전달하는 interface이다.   
+
+**Device는 video adapter를 추상화하여 제어하고 관리하는 역할**을 하며, 이를 나타내는 interface object가 `ID3D11Device`이다.   
+**Device Context는 GPU 연산을 실제로 실행**하며, 이를 나타내는 interface object가 `ID3D11DeviceContext`이다.   
+실제로 코드에서는 이러한 COM object를 직접 다루지 않기 때문에 pointer로 주소를 받아서 간접적으로 제어한다.   
+
+
 
 # Launching Direct3D
 **첫 단계는 3가지 COM object( ID3D11Device, ID3D11DeviceContext, IDXGISwapChain )을 생성하고 초기화**하는 것이다. 이 작업은 하나의 function과 graphics device information이 포함된 struct로 수행한다.   
