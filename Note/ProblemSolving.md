@@ -7,8 +7,10 @@
 
 # 삼각형이 잘리는 경우( Clipping )
 
-<img src="Images/ProblemSolving/DrawingTriangleError.png" width="45%" />
-<img src="Images/ProblemSolving/DrawingTriangleSolving.png" width="45%" />
+<div>
+	<img src="Images/ProblemSolving/DrawingTriangleError.png" width="45%" />
+	<img src="Images/ProblemSolving/DrawingTriangleSolving.png" width="45%" />
+</div>
 
 **[ before | after ]**   
 
