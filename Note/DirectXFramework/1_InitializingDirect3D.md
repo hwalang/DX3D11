@@ -36,7 +36,7 @@ void CleanD3D( void );          // closes Direct3D and releases memory
 `d3d11.h`는 Direct3D의 핵심 header files를 포함한다.   
 
 `ID3D11Device* dev`는 device에 대한 pointer이다. **device는 Direct3D에서 video adapter( graphics device )를 추상화하여 제어하고 관리하는 역할을 하는 COM 객체**다.   
-**video adapter는 컴퓨터에 장착된 grapchis card 혹은 GPU와 같은 그래픽 연산 hardware를 말한다**.   
+**video adapter는 컴퓨터에 장착된 graphic card 혹은 GPU와 같은 그래픽 연산 hardware를 말한다**.   
 즉, `ID3D11Device`는 실제 video adapter에 접근하지 않고도 graphic resources를 생성하고, rendering pipeline을 설정하며, GPU 연산을 관리할 수 있게 해주는 Handle 역할을 수행하는 추상화된 interface object라 할 수 있다.   
 
 여기서 중요한 점은 **COM 객체를 직접 생성하거나 다루는 것이 아니라, COM 객체를 가리키는 pointer를 통해 접근한다는 점**이다.   
@@ -45,9 +45,10 @@ COM에서는 객체의 실제 구현을 감추고, interface를 통해서만 접
 `ID3D11DeviceContext* devcon`는 device처럼 pointer로 device context 객체에 간접적으로 접근한다.   
 이러한 **Device Context는 GPU 연산을 실제로 실행**하며, 이를 나타내는 interface object가 `ID3D11DeviceContext`이다.   
 
-[ GraphicsConcepts.md - The Swap Chain ](GraphicsTheory/GraphicsConcpets.md/#the-swap-chain)   
-`IDXGISwapChain* swapchain`는 각 chain에 대한 pointer이다. swap chain은 번갈아 가며 rendering되는 buffer다.   
-이 객체는 Direct3D에 속하지 않지만, 실제로 Direct3D의 기반이 되는 DXGI의 일부다.   
+[ GraphicsConcepts.md - The Swap Chain ](/Note/GraphicsTheory/GraphicsConcpets.md/#the-swap-chain)   
+`IDXGISwapChain`는 DXGI를 통해 관리되는 swap chain을 제어하기 위한 interface object이다.   
+swap chian은 보통 하나 이상의 front buffer와 back buffer를 포함하고, rendering 한 결과를 화면에 표시하기 위해 각 buffer를 swap하는 기능을 제공한다.   
+즉, `IDXGISwapChain`는 GPU가 관리하는 front/back buffer를 app에서 제어할 수 있게 하는 interface이다.   
 
 ## Device와 Device Context
 **`ID3D11Device`는 GPU와 관련된 resources를 관리하고 생성하는 역할**이다.   
