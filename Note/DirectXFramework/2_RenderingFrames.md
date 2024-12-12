@@ -8,6 +8,10 @@
 	- [ID3D11RenderTargetView](#id3d11rendertargetview)
 	- [ID3D11Texture2D](#id3d11texture2d)
 - [Setting the Viewport](#setting-the-viewport)
+	- [1. viewport란](#1-viewport란)
+	- [2. D3D11\_VIEWPORT와 RSSetViewports()](#2-d3d11_viewport와-rssetviewports)
+	- [3. back buffer과 viewport 크기의 상관관계](#3-back-buffer과-viewport-크기의-상관관계)
+		- [3.1. back buffer가 아니라 render target이 아닌가?](#31-back-buffer가-아니라-render-target이-아닌가)
 - [Rendering Frames](#rendering-frames)
 - [Obligatory Cleanup](#obligatory-cleanup)
 - [Final Code](#final-code)
@@ -46,7 +50,7 @@ back buffer에는 모든 처리가 끝난 후 화면에 보여주기 직전의 �
 Render Target이란, **rendering 결과물을 그려 넣을 수 있는 특정한 buffer나 surface를 의미**한다.   
 Direct3D에서 graphics pipeline을 통해 생성된 pixel 정보가 최종적으로 기록되는 장소다. **일반적으로 최종 화면 출력 전에 결과물을 임시로 저장하기 위해 사용**하며, 이때 back buffer도 render target 중 하나이다.   
 하지만 back buffer 외에도 다양한 중간 단계의 render target을 설정할 수 있으며, 이를 통해 원하는 그래픽 결과물을 조합하고 가공하는 것이 가능하다.   
-즉, rendering 결과물을 저장하기 위한 일종의 그릇 역할을 하는 surface   
+즉, 그림을 그려 넣을 수 있는 2D memory space( buffer )이며, 이는 rendering 결과가 기록되는 영역을 뜻한다.   
 
 Render Target Texture란, **render target으로 사용될 수 있는 texture 형태의 데이터**다.   
 **memory 상의 texture이며 직접 화면에 표시되지 않고, rendering 결과를 임시로 담아두기 위한 용도로 사용**한다.   
@@ -119,19 +123,14 @@ GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
 
 # Setting the Viewport
 [normalized device coordinates - stackoverflow](https://stackoverflow.com/questions/58702023/what-is-the-coordinate-system-used-in-metal)   
-![alt text](Images/RenderingFrames/PixelCoordinates.png)
-![alt text](Images/RenderingFrames/NormalizedDeviceCoordinates.png)   
-**viewport는 normalized device coordinates( NDC )를 pixel coordinates로 변환하는 하나의 방법**이다.   
-viewport는 render target 내에서 graphic이 rendering 되는 영역을 정의한다. 이는 3D rendering된 contents가 실제로 화면에 표시되는 영역을 정의한다.   
-즉, **3D world에서 camera를 통해 capture된 장면이 screen 상의 어느 부분에 보여질 것인지를 결정**한다.   
 
-**pixel coordinates는 the upper-left corner의 (0, 0)에서 시작하고, 한 칸에 한 pixel이 존재**한다.   
-**NDC는 (-1, 1)에서 시작하고, back buffer의 크기에 상관없이 (1, -1)까지 늘어난다**.   
-여기서 normalized라는 용어는 값이 1이 될 때까지 조정된다는 의미다.   
+<div>
+<img src="Images/RenderingFrames/PixelCoordinates.png" width="45%" />
+<img src="Images/RenderingFrames/NormalizedDeviceCoordinates.png" width="45%" />
+</div>
 
-**(-1, 1)과 (1, -1)이 무엇인지는 viewport에 따라 결정**된다. viewport는 pixel coordinates에서 (-1, 1)과 (1, -1)의 위치를 설정할 수 있는 struct이다.   
-즉, **normalized device coordinates( NDC )를 pixel coordinates로 변환하는 역할**이다.   
-NDC는 viewport transformation을 통해 이 좌표들이 실제 pixel coordinates로 매핑된다.   
+NDC는 3D scene에서 정규화된 좌표 공간으로 X, Y, Z 모두 [-1, 1] 범위에 존재한다.   
+viewport는 이러한 NDC의 범위를 [ 0 ~ Width, 0 ~ Height ]범위 로 mapping하는 역할이다.   
 ```cpp
 bool InitD3D( HWND hWnd ) {
   // Direct3D Initialization
@@ -142,7 +141,7 @@ bool InitD3D( HWND hWnd ) {
 
   // Set the viewport
   D3D11_VIEWPORT viewPort;
-  ZeroMmeory( &viewPort, sizeof(D3D11_VIEWPORT) );
+  ZeroMemory( &viewPort, sizeof(D3D11_VIEWPORT) );
 
   viewPort.TopLeftX = 0;
   viewPort.TopLeftY = 0;
@@ -152,11 +151,32 @@ bool InitD3D( HWND hWnd ) {
   devcon->RSSetViewports(1, &viewPort);
 }
 ```
-`RRSetViewports()`는 viewport struct를 활성화하는 함수다.   
+## 1. viewport란
+viewport는 render target 내에서 실제 graphic이 rendering 되는 특정 영역을 정의한다.   
+render target 전체가 1280 x 960 pixel이라면, viewport는 canvas 내의 어느 사각형 범위에 그림을 그려 넣을지 정해준다.   
+예를 들면, render target이 1280x960 pixel인데, viewport는 `TopLeftX=100, TopLeftY=50, Width=640, Height=480`이라면, 결과적으로 실제 도형이 rendering 되는 영역은 render target 내부에서 (100, 50) 위치를 기준으로 가로 640, 세로 480 pixel 짜리 직사각형 영역이 된다.   
+이 밖의 영역은 rendering 명령이 적용되지 않기에 그려지지 않는 빈 공간이 된다.   
+즉, **3D world에서 camera를 통해 capture된 장면이 screen 상의 어느 부분에 보여질 것인지를 결정**한다.   
+
+## 2. D3D11_VIEWPORT와 RSSetViewports()
+`D3D11_VIEWPORT`는 pixel coordinates에서 [-1, 1]의 위치를 설정할 수 있는 struct이다.   
+`TopLeftX와 TopLeftY`는 pixel coordinates에서 view port의 시작점을 지정한다. `Width와 Height`는 view port의 가로 | 세로 크기를 결정하며, 이를 통해 NDC [-1, 1] 범위가 어느 pixel 범위로 mapping될지 정의한다.   
+
+`RSSetViewports()`는 **viewport struct를 이용해서 NDC를 pixel coordinates로 mapping( Viewport Transformation )**한다.   
+변환 작업은 pipeline에 의해 자동으로 수행한다.   
 첫 번째 인자는 사용하는 viewport의 번호를 나타내며, 두 번째 인자는 viewport struct의 pointers list를 가리키는 주소를 의미한다.   
 
-viewport의 `Width`와 `Height`는 render target( back buffer ) 내에서 rendering 되는 영역을 정의한다. 이러한 **두 멤버 변수는 NDC를 pixel coordinates로 변환할 때 사용**한다.   
-만약 swap chain의 back buffer의 크기와 viewport의 크기가 일치하지 않으면, rendering 된 이미지는 swap chain에 설정된 window size에 맞게 scaling 되거나 잘릴 수 있다.   
+## 3. back buffer과 viewport 크기의 상관관계
+먼저 viewport를 통해 NDC가 viewport가 정의한 pixel coordinates 범위로 mapping되는 과정에서 scaling은 항상 발생한다.   
+
+만약 swap chain의 back buffer의 크기와 viewport의 크기가 일치하지 않으면, 두가지 상황이 발생한다.   
+1. viewport가 더 작은 경우, 최종 rendering 이미지가 clipping되어 일부 영역에만 rendering
+2. viewport가 더 큰 경우, 원래의 이미지가 scaling되어 확대
+3. viewport가 back buffer 자체의 memory( resolution ) 한계를 넘어서면, back buffer 바깥 부분은 실제로 존재하지 않으므로 초과하는 영역은 보이지 않게 되어 clipping되는 효과를 준다.
+
+### 3.1. back buffer가 아니라 render target이 아닌가?   
+viewport는 NDC를 pixel coordinates로 변환하는 영역을 정의한다. 즉, 일반적으로 최종적으로 화면에 표시할 이미지가 담기는 render target은 보통 back buffer이므로, viewport의 크기를 back buffer의 크기와 비교하는 것이 맞다.   
+만약 rendering 결과를 back buffer가 아닌 다른 render target texture에 그리는 경우에는 render target 표현이 맞다.   
 
 # Rendering Frames
 이제 간단한 frame을 rendering하는 함수를 생성한다.   
