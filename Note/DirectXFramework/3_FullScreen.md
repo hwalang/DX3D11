@@ -1,16 +1,16 @@
 - [Introduce](#introduce)
 - [Setting Up the Screen Size](#setting-up-the-screen-size)
 - [Changing to Fullscreen Mode](#changing-to-fullscreen-mode)
-  - [1. Modify the window to have no background](#1-modify-the-window-to-have-no-background)
-  - [2. Set the back buffer to a specific size](#2-set-the-back-buffer-to-a-specific-size)
-  - [3. Set DirectX to automatically switch when Alt-Enter is used](#3-set-directx-to-automatically-switch-when-alt-enter-is-used)
-  - [4. Modify the CleanD3D() function to turn off fullscreen when closing](#4-modify-the-cleand3d-function-to-turn-off-fullscreen-when-closing)
+	- [1. Modify the window to have no background](#1-modify-the-window-to-have-no-background)
+	- [2. Set the back buffer to a specific size](#2-set-the-back-buffer-to-a-specific-size)
+	- [3. Set DirectX to automatically switch when Alt-Enter is used](#3-set-directx-to-automatically-switch-when-alt-enter-is-used)
+	- [4. Modify the CleanD3D() function to turn off fullscreen when closing](#4-modify-the-cleand3d-function-to-turn-off-fullscreen-when-closing)
 - [Final code](#final-code)
 
 [Going Fullscreen - DirectXTutorial](http://www.directxtutorial.com/Lesson.aspx?lessonid=11-4-4)   
  
 # Introduce
-screen resolution을 gloabl하게 설정하는 방법과 그 이유에 대해 살펴보고, window과 fullscreen을 mode를 넘나드는 기법에 대해 알아본다.   
+screen resolution을 gloabl하게 설정하는 방법과 그 이유에 대해 살펴보고, window과 fullscreen mode를 넘나드는 기법에 대해 알아본다.   
 
 # Setting Up the Screen Size
 DirectX를 사용하여 game program을 만들다보면 screen size를 알아야하는 많은 function과 struct를 접하게 된다. 나중에 resolution을 변경할 때, 특히 run-time 중 resolution을 변경할 때 번거로울 수 있다.   
@@ -22,6 +22,9 @@ DirectX를 사용하여 game program을 만들다보면 screen size를 알아야
 ```
 먼저 screen width와 height를 나타내는 two directives를 추가한다.   
 ```cpp
+RECT wr = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
+AdjustWindowRect ( &wr , WS_OVERLAPPEDWINDOW , FALSE );
+
 HWND mainWindow = CreateWindowEx ( 
 	NULL ,
 	wc.lpszClassName ,            // name of the window class
@@ -29,18 +32,20 @@ HWND mainWindow = CreateWindowEx (
 	WS_OVERLAPPEDWINDOW ,         // window style
 	0 ,                           // x-position of the window
 	0 ,                           // y-position of the window
-	SCREEN_WIDTH, SCREEN_HEIGHT,  // new "set window to new resolution"
+	wr.right - wr.left ,
+	wr.bottom - wr.top ,
 	NULL ,                        // we have no parent window
 	NULL ,                        // we aren't using menus
 	wc.hInstance ,                // apllication handle
-	NULL									        // used with multiple windows
+	NULL // used with multiple windows
 );
 ```
 ```cpp
 viewPort.Width = SCREEN_WIDTH;
 viewPort.Height = SCREEN_HEIGHT;
 ```
-다음에는 window와 viewport 크기를 `SCREEN_WIDTH, SCREEN_HEIGHT`로 통일한다.   
+다음에는 client와 viewport 크기를 `SCREEN_WIDTH, SCREEN_HEIGHT`로 통일한다.   
+이전에 말했던, [viewport와 back buffer의 크기가 다른 경우](2_RenderingFrames.md/#3-back-buffer과-viewport-크기의-상관관계) 발생하는 다양한 문제점을 방지할 수 있다.   
 
 # Changing to Fullscreen Mode
 많은 게임들은 fullscreen으로 플레이하지만, window mode도 지원한다. 따라서 기본값은 fullscreen mode지만, user의 희망에 따라 window mode로 바꿀 수 있는 option을 제공한다. 또한 이러한 단축키로 "Alt + Enter"를 지원한다.   
