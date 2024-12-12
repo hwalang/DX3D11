@@ -125,8 +125,8 @@ GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
 [normalized device coordinates - stackoverflow](https://stackoverflow.com/questions/58702023/what-is-the-coordinate-system-used-in-metal)   
 
 <div>
-<img src="Images/RenderingFrames/PixelCoordinates.png" width="45%" />
 <img src="Images/RenderingFrames/NormalizedDeviceCoordinates.png" width="45%" />
+<img src="Images/RenderingFrames/PixelCoordinates.png" width="45%" />
 </div>
 
 NDC는 3D scene에서 정규화된 좌표 공간으로 X, Y, Z 모두 [-1, 1] 범위에 존재한다.   
@@ -153,13 +153,13 @@ bool InitD3D( HWND hWnd ) {
 ```
 ## 1. viewport란
 viewport는 render target 내에서 실제 graphic이 rendering 되는 특정 영역을 정의한다.   
-render target 전체가 1280 x 960 pixel이라면, viewport는 canvas 내의 어느 사각형 범위에 그림을 그려 넣을지 정해준다.   
+**render target 전체가 1280 x 960 pixel이라면, viewport는 canvas 내의 어느 사각형 범위에 그림을 그려 넣을지 정해준다**.   
 예를 들면, render target이 1280x960 pixel인데, viewport는 `TopLeftX=100, TopLeftY=50, Width=640, Height=480`이라면, 결과적으로 실제 도형이 rendering 되는 영역은 render target 내부에서 (100, 50) 위치를 기준으로 가로 640, 세로 480 pixel 짜리 직사각형 영역이 된다.   
-이 밖의 영역은 rendering 명령이 적용되지 않기에 그려지지 않는 빈 공간이 된다.   
+**이 밖의 영역은 rendering 명령이 적용되지 않기에 그려지지 않는 빈 공간**이 된다.   
 즉, **3D world에서 camera를 통해 capture된 장면이 screen 상의 어느 부분에 보여질 것인지를 결정**한다.   
 
 ## 2. D3D11_VIEWPORT와 RSSetViewports()
-`D3D11_VIEWPORT`는 pixel coordinates에서 [-1, 1]의 위치를 설정할 수 있는 struct이다.   
+`D3D11_VIEWPORT`는 **pixel coordinates에서 [-1, 1]의 위치를 설정할 수 있는 struct**이다.   
 `TopLeftX와 TopLeftY`는 pixel coordinates에서 view port의 시작점을 지정한다. `Width와 Height`는 view port의 가로 | 세로 크기를 결정하며, 이를 통해 NDC [-1, 1] 범위가 어느 pixel 범위로 mapping될지 정의한다.   
 
 `RSSetViewports()`는 **viewport struct를 이용해서 NDC를 pixel coordinates로 mapping( Viewport Transformation )**한다.   
@@ -167,15 +167,16 @@ render target 전체가 1280 x 960 pixel이라면, viewport는 canvas 내의 어
 첫 번째 인자는 사용하는 viewport의 번호를 나타내며, 두 번째 인자는 viewport struct의 pointers list를 가리키는 주소를 의미한다.   
 
 ## 3. back buffer과 viewport 크기의 상관관계
-먼저 viewport를 통해 NDC가 viewport가 정의한 pixel coordinates 범위로 mapping되는 과정에서 scaling은 항상 발생한다.   
+먼저 viewport를 통해 NDC가 viewport가 정의한 pixel coordinates 범위로 mapping되는 과정에서 **scaling은 항상 발생**한다.   
 
 만약 swap chain의 back buffer의 크기와 viewport의 크기가 일치하지 않으면, 두가지 상황이 발생한다.   
 1. viewport가 더 작은 경우, 최종 rendering 이미지가 clipping되어 일부 영역에만 rendering
-2. viewport가 더 큰 경우, 원래의 이미지가 scaling되어 확대
-3. viewport가 back buffer 자체의 memory( resolution ) 한계를 넘어서면, back buffer 바깥 부분은 실제로 존재하지 않으므로 초과하는 영역은 보이지 않게 되어 clipping되는 효과를 준다.
+2. viewport가 더 큰 경우
+   1. 원래의 이미지가 scaling되어 확대
+   2. viewport가 back buffer 자체의 memory( resolution ) 한계를 넘어서면, back buffer 바깥 부분은 실제로 존재하지 않으므로 초과하는 영역은 보이지 않게 되어 clipping되는 효과를 준다.
 
 ### 3.1. back buffer가 아니라 render target이 아닌가?   
-viewport는 NDC를 pixel coordinates로 변환하는 영역을 정의한다. 즉, 일반적으로 최종적으로 화면에 표시할 이미지가 담기는 render target은 보통 back buffer이므로, viewport의 크기를 back buffer의 크기와 비교하는 것이 맞다.   
+viewport는 NDC를 pixel coordinates로 변환하는 영역을 정의한다. 즉, **일반적으로 최종적으로 화면에 표시할 이미지가 담기는 render target은 보통 back buffer이므로, viewport의 크기를 back buffer의 크기와 비교하는 것이 맞다**.   
 만약 rendering 결과를 back buffer가 아닌 다른 render target texture에 그리는 경우에는 render target 표현이 맞다.   
 
 # Rendering Frames
@@ -194,8 +195,8 @@ void RenderFrame() {
 }
 ```
 `devcon->ClearRenderTargetView`는 render target buffer를 특정한 color로 채운다.   
-**첫 인자는 render target object의 주소**를 원하기 때문에 `backBuffer`를 넘긴다.   
-**두 번째 인자는 back buffer를 어떤 color로 채울지 결정**한다. 이를 위해 `D3DXCOLOR`를 사용하여 color를 생성하며, RGBA를 의미한다.   
+**첫 인자는 render target view object에 대한 pointer( 주소 )**를 원하기 때문에 `backBuffer`를 넘긴다.   
+**두 번째 인자는 back buffer를 어떤 color로 채울지 결정**한다. 이를 위해 `DirectXMath(XMFLOAT4) 또는 float의 array`를 사용하여 color를 생성하며, RGBA를 의미한다.   
 
 `swapChain->Present`는 기본적으로 **back buffer가 front buffer가 되도록 swap chain의 "swap"을 담당**한다.   
 
