@@ -5,7 +5,8 @@
 	- [3. back buffer에 rendering](#3-back-buffer에-rendering)
 - [Render Target과 Render Target Texture](#render-target과-render-target-texture)
 - [Setting the Render Target](#setting-the-render-target)
-	- [Render Target을 Setting하는 이유](#render-target을-setting하는-이유)
+	- [ID3D11RenderTargetView](#id3d11rendertargetview)
+	- [ID3D11Texture2D](#id3d11texture2d)
 - [Setting the Viewport](#setting-the-viewport)
 - [Rendering Frames](#rendering-frames)
 - [Obligatory Cleanup](#obligatory-cleanup)
@@ -43,7 +44,7 @@ back buffer에는 모든 처리가 끝난 후 화면에 보여주기 직전의 �
 
 # Render Target과 Render Target Texture
 Render Target이란, **rendering 결과물을 그려 넣을 수 있는 특정한 buffer나 surface를 의미**한다.   
-Direct3D에서 graphics pipeline을 통해 생성된 pixel 정보가 최종적으로 기록되는 장소다. **일반적으로 최종 화면 출력 전에 결과물을 임시로 저장하기 위해 사용**하며, 이때 최종적으로 화면에 보여지는 back buffer도 render target 중 하나이다.   
+Direct3D에서 graphics pipeline을 통해 생성된 pixel 정보가 최종적으로 기록되는 장소다. **일반적으로 최종 화면 출력 전에 결과물을 임시로 저장하기 위해 사용**하며, 이때 back buffer도 render target 중 하나이다.   
 하지만 back buffer 외에도 다양한 중간 단계의 render target을 설정할 수 있으며, 이를 통해 원하는 그래픽 결과물을 조합하고 가공하는 것이 가능하다.   
 즉, rendering 결과물을 저장하기 위한 일종의 그릇 역할을 하는 surface   
 
@@ -53,9 +54,6 @@ render target texture에 먼저 장면을 rendering 한 뒤, 그 texture를 다�
 
 # Setting the Render Target
 Direct3D에서 rendering을 하기 위해선 반드시 **render target을 지정**한다.   
-이는 rendering 할 video memory의 위치를 유지하는 간단한 **COM object**이다.   
-
-**video memory에 texture( Render Target Texture )를 rendering하기 위해서 Render Target을 지정하는 방법**을 알아본다.   
 ```cpp
 ID3D11RenderTargetView* backBuffer;
 
@@ -63,11 +61,11 @@ bool InitD3D( HWND hWnd ) {
   // Direct3D Initialization
   // ...
 
-  // get the address of the back buffer
+  // get the address of the back buffer texture
   ID3D11Texture2D* pBackBuffer;
   swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)&pBackBuffer);
 
-  // use the back buffer address to create the render target
+  // use the back buffer texture address to create the render target
   dev->CreateRenderTargetView(pBackBuffer, NULL, &backBuffer);
   pBackBuffer->Release();
 
@@ -79,21 +77,25 @@ bool InitD3D( HWND hWnd ) {
 첫째, back buffer texture의 주소 얻기: `swapChain->GetBuffer()`를 사용해서 swap chain에서 back buffer의 texture를 가져온다.    
 여기서 **back buffer texture란, rendering pipeline에서 swap chain이 관리하는 여러 buffer 중, 화면에 표시되기 직전의 최종 이미지를 담아두는 texture를 의미**한다.   
 이러한 back buffer texture는 render target으로 활용된다. 즉, GPU가 최종 pixel 정보를 기록하여 실제 출력용 이미지를 형성하는 surface 역할을 한다.   
-둘째, 그 주소를 사용해서 render target view를 나타내는 COM object를 생성한다. `dev->CreateRenderTargetView()`를 사용하여 back buffer texture를 기반으로 render target view를 생성한다.   
-셋째, `pBackBuffer->Release()`를 호출하여 texture object를 해제한다.   
-넷째, `devcon->OMSetRenderTargets()`를 사용해서 생성된 render target view를 현재 render target으로 설정한다.   
+둘째, 그 주소를 사용해서 render target view를 나타내는 COM object를 생성한다. `dev->CreateRenderTargetView()`는 render target view를 생성하면서 back buffer texture를 render target으로 설정하기 위한 정보를 가진다.    
+셋째, `pBackBuffer->Release()`를 호출하여 texture object에 대한 pointer를 해제한다.   
+넷째, `devcon->OMSetRenderTargets()`는 render target view와 연결된 texture를 실제 render target으로 설정하는 역할이다.   
+이 함수를 호출하면 이후의 rendering pipeline에서 그 texture가 그려질 대상이 되며, rendering 결과는 해당 texture에 기록된다.   
 
+## ID3D11RenderTargetView
 `ID3D11RenderTargetView`는 **특정 texture resource를 rendering 대상으로 사용할 수 있도록 하는 View Interface**다.   
 이는 대상 resource를 render target으로 pipeline에 설정할 수 있게 하는 meta data( view )이다.   
-**resource 자체는 단순히 pixel data나 vertex data 등의 원시( raw ) 정보만 담고 있지만, 이 데이터를 *어떻게* 사용할 것인ㄴ지를 pipeline에게 알려주는 역할을 하는 것이 View**이다.   
+**resource 자체는 단순히 pixel data나 vertex data 등의 원시( raw ) 정보만 담고 있지만, 이 데이터를 *어떻게* 사용할 것인지를 pipeline에게 알려주는 역할을 하는 것이 View**이다.   
 `ID3D11RenderTargetView` 같은 View object는 resource에 대한 해석 정보를 포함하고 있으며, 이를 통해 pipeline은 resource를 render target으로 인식하고 활용할 수 있다.   
 즉, 여기서 meta data( view )란, resource를 해석하고 특정 pipeline 단계에서 어떤 역할을 할지 정의해주는 부가적인 설정 정보를 뜻한다.   
 
+## ID3D11Texture2D
 `ID3D11Texture2D`는 **2D texture resource를 다루기 위한 COM object를 가리키는 Interface**다.   
 GPU memory에 존재하는 texture resource를 추상화하고 있으며, 이를 통해 texture 정보를 읽거나 쓰고, 다른 graphic pipeline 단계에 texture를 binding 할 수 있다.   
 참고로 이러한 texture는 GPU memory에 있는 image 데이터를 뜻한다.   
 
-`swapChain->GetBuffer()` 는 **swap chain이 보유한 back buffer의 texture interface interface pointer를 얻는다.**한다.   
+---
+`swapChain->GetBuffer()` 는 **swap chain이 보유한 back buffer의 texture interface pointer**를 얻는다.   
 **첫 번째 인자는 back buffer의 번호**를 나타낸다. 하나의 back buffer를 사용하기 때문에 `#0`으로 지정했다.   
 **두 번째 인자는 `ID3D11Texture2D` COM object의 ID를 가져온다**. COM object의 각 TYPE은 자신만의 ID가 존재한다. 이러한 ID를 가져오기 위해서 `__uuidof` operator를 사용한다. 이를 통해 `GetBuffer()`가 어떤 TYPE의 COM object를 생성해야 하는지 알 수 있다.   
 세 번째 인자를 설명하기 전, 기본 지식을 알아본다. **`void*` 포인터는 특정 TYPE의 변수를 가리키지 않는다. 또한 `void*`는 어떠한 type으로도 casting 될 수 있다**. 이처럼 **세 번째 인자는 `ID3D11Texture2D` Object의 주소를 가리키며**, 다른 type이 있을 수 있기에 `void*`을 사용한다.   
@@ -104,7 +106,7 @@ GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
 ```
 참고로 `GetBuffer`의 2, 3번째 인자는 `IID_PPV_ARGS()`로 대체할 수 있다.   
 
-**`dev->CreateRenderTargetView()` 함수는 render target object를 생성**한다. 생성된 객체를 가리키기 위해 `ID3D11RenderTargetView*`를 정의했다.   
+**`dev->CreateRenderTargetView()` 함수는 render target view object를 생성**한다.   
 다시 한 번 말하지만, COM object는 직접 다루는 것이 아니라 interface로 간접적으로 접근하여 다룬다.   
 **첫 번째 인자는 `ID3D11Texture2D`를 가리키는 pointer**다.   
 **두 번째 인자는 render target을 설명하는 struct**이다. back buffer는 기본 설정을 사용하기 때문에 `NULL`로 설정한다.   
@@ -114,9 +116,6 @@ GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
 첫 번째 인자는 render target의 수를 나타낸다.   
 두 번째 인자는 render target view object의 list를 가리키는 pointer다. 하나만 가지기 때문에 render target object의 주소만 넘겨줬다.   
 세 번째 인자는 `... 나중에 알아봄!`   
-
-## Render Target을 Setting하는 이유
-이 작업을 통해 **back buffer를 render target으로 설정하여, 우리가 그리는 모든 것이 back buffer에 rendering 되고, 나중에 화면에 표시**될 수 있게 한다.   
 
 # Setting the Viewport
 [normalized device coordinates - stackoverflow](https://stackoverflow.com/questions/58702023/what-is-the-coordinate-system-used-in-metal)   
