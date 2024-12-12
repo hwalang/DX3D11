@@ -217,10 +217,10 @@ void CleanD3D() {
 
 #pragma comment (lib, "d3d11.lib")
 
-IDXGISwapChain* swapChain;					// the pointer to the swap chain interface
-ID3D11Device* dev;									// the pointer to our Direct3D device interface
-ID3D11DeviceContext* devcon;				// the pointer to our Direct3D device context
-ID3D11RenderTargetView* backBuffer;	// the pointer to our back buffer
+IDXGISwapChain* swapChain; // the pointer to the swap chain interface
+ID3D11Device* dev; // the pointer to our Direct3D device interface
+ID3D11DeviceContext* devcon; // the pointer to our Direct3D device context
+ID3D11RenderTargetView* backBuffer; // the pointer to our back buffer
 
 bool InitD3D ( HWND hWnd );
 void RenderFrame ();
@@ -261,7 +261,7 @@ int main ()
 		NULL ,                 // we have no parent window
 		NULL ,                 // we aren't using menus
 		wc.hInstance ,         // apllication handle
-		NULL									 // used with multiple windows
+		NULL // used with multiple windows
 	);
 
 	if ( !mainWindow ) {
