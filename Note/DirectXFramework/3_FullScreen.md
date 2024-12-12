@@ -2,9 +2,8 @@
 - [Setting Up the Screen Size](#setting-up-the-screen-size)
 - [Changing to Fullscreen Mode](#changing-to-fullscreen-mode)
 	- [1. Modify the window to have no background](#1-modify-the-window-to-have-no-background)
-	- [2. Set the back buffer to a specific size](#2-set-the-back-buffer-to-a-specific-size)
-	- [3. Set DirectX to automatically switch when Alt-Enter is used](#3-set-directx-to-automatically-switch-when-alt-enter-is-used)
-	- [4. Modify the CleanD3D() function to turn off fullscreen when closing](#4-modify-the-cleand3d-function-to-turn-off-fullscreen-when-closing)
+	- [2. Set DirectX to automatically switch when Alt-Enter is used](#2-set-directx-to-automatically-switch-when-alt-enter-is-used)
+	- [3. Modify the CleanD3D() function to turn off fullscreen when closing](#3-modify-the-cleand3d-function-to-turn-off-fullscreen-when-closing)
 - [Final code](#final-code)
 
 [Going Fullscreen - DirectXTutorial](http://www.directxtutorial.com/Lesson.aspx?lessonid=11-4-4)   
@@ -41,10 +40,18 @@ HWND mainWindow = CreateWindowEx (
 );
 ```
 ```cpp
+bool InitD3D( HWND hWnd ) {
+  DXGI_SWAP_CHAIN_DESC scd;
+  // ...
+  scd.BufferDesc.Width = SCREEN_WIDTH;    // set the back buffer width
+  scd.BufferDesc.Height = SCREEN_HEIGHT;  // set the back buffer height
+}
+```
+```cpp
 viewPort.Width = SCREEN_WIDTH;
 viewPort.Height = SCREEN_HEIGHT;
 ```
-다음에는 client와 viewport 크기를 `SCREEN_WIDTH, SCREEN_HEIGHT`로 통일한다.   
+다음에는 client, back buffer와 viewport 크기를 `SCREEN_WIDTH, SCREEN_HEIGHT`로 통일한다.   
 이전에 말했던, [viewport와 back buffer의 크기가 다른 경우](2_RenderingFrames.md/#3-back-buffer과-viewport-크기의-상관관계) 발생하는 다양한 문제점을 방지할 수 있다.   
 
 # Changing to Fullscreen Mode
@@ -56,18 +63,7 @@ window background를 제거하기 위해서 `WINDOWCLASSEX`의 멤버 변수에�
 // wc.hbrBackground = ( HBRUSH ) COLOR_WINDOW;
 ```
 
-## 2. Set the back buffer to a specific size
-`scd` struct를 약간 수정해서 DirectX에게 screen resolution을 알린다.   
-```cpp
-bool InitD3D( HWND hWnd ) {
-  DXGI_SWAP_CHAIN_DESC scd;
-  // ...
-  scd.BufferDesc.Width = SCREEN_WIDTH;    // set the back buffer width
-  scd.BufferDesc.Height = SCREEN_HEIGHT;  // set the back buffer height
-}
-```
-
-## 3. Set DirectX to automatically switch when Alt-Enter is used
+## 2. Set DirectX to automatically switch when Alt-Enter is used
 `scd` struct에 flag를 추가한다.   
 ```cpp
 scd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;   // allow full-screen switching
@@ -75,9 +71,12 @@ scd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;   // allow full-screen switc
 `DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH`는 swap chain이 fullscreen-window mode간의 전환을 허용하는 flag이다.   
 **Direct3D가 "Alt+Enter" 키 입력을 감지하여 fullscreen과 window mode간의 전환이 자동으로 이뤄지도록 처리**한다.   
 
-## 4. Modify the CleanD3D() function to turn off fullscreen when closing
-Direct3D는 fullscreen mode에서 프로그램을 닫을 수 없다. 이는 background에서 발생하는 특정 threading 문제다.   
-따라서 올바르게 종료하려면, window mode임을 확인해야 한다. 이를 위해 `SetFullscreenState()`를 사용한다.   
+## 3. Modify the CleanD3D() function to turn off fullscreen when closing
+**Direct3D는 fullscreen mode에서 실행 중인 프로그램을 닫으면, 다양한 문제( error, 비정상 종료, thread 충돌 등 )이 발생**할 수 있다.   
+fullscreen mode가 window system과 display mode 사이에 특정한 상태를 유지하고 있으며, 이 상태를 깨끗하게 복원하지 않고 종료하면 OS나 driver 단에서 문제가 발생할 수 있다.   
+**Direct3D는 fullscreen mode에서 display resolution이나 refresh rate 등을 독점하거나 변경하는 경우가 많기 때문**이다.   
+이 상태에서 종료한다면, display mode를 원래대로 돌려놓기 전에 process가 사라져서 **OS나 다른 app에게 영향을 줄 수 있다**.   
+때문에 프로그램 종료 전 window mode로 전환( 원래의 display 상태를 복구 )하고 모든 resource를 해제한 후, 닫는 것이 안전하고 권장되는 방식이다.   
 ```cpp
 void CleanD3D() {
   swapChain->SetFullscreenState(FALSE, NULL);   // switch to windowed mode
@@ -99,10 +98,10 @@ void CleanD3D() {
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 960
 
-IDXGISwapChain* swapChain;					// the pointer to the swap chain interface
-ID3D11Device* dev;									// the pointer to our Direct3D device interface
-ID3D11DeviceContext* devcon;				// the pointer to our Direct3D device context
-ID3D11RenderTargetView* backBuffer;	// the pointer to our back buffer
+IDXGISwapChain* swapChain; // the pointer to the swap chain interface
+ID3D11Device* dev; // the pointer to our Direct3D device interface
+ID3D11DeviceContext* devcon; // the pointer to our Direct3D device context
+ID3D11RenderTargetView* backBuffer; // the pointer to our back buffer
 
 bool InitD3D ( HWND hWnd );
 void RenderFrame ();
@@ -141,7 +140,7 @@ int main ()
 		NULL ,                 // we have no parent window
 		NULL ,                 // we aren't using menus
 		wc.hInstance ,         // apllication handle
-		NULL									 // used with multiple windows
+		NULL  // used with multiple windows
 	);
 
 	if ( !mainWindow ) {
