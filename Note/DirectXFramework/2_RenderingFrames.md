@@ -89,8 +89,10 @@ bool InitD3D( HWND hWnd ) {
 ## ID3D11RenderTargetView
 `ID3D11RenderTargetView`는 **특정 texture resource를 rendering 대상으로 사용할 수 있도록 하는 View Interface**다.   
 이는 대상 resource를 render target으로 pipeline에 설정할 수 있게 하는 meta data( view )이다.   
-**resource 자체는 단순히 pixel data나 vertex data 등의 원시( raw ) 정보만 담고 있지만, 이 데이터를 *어떻게* 사용할 것인지를 pipeline에게 알려주는 역할을 하는 것이 View**이다.   
-`ID3D11RenderTargetView` 같은 View object는 resource에 대한 해석 정보를 포함하고 있으며, 이를 통해 pipeline은 resource를 render target으로 인식하고 활용할 수 있다.   
+
+**resource 자체는 단순히 pixel data나 vertex data 등의 원시( raw ) 정보만 담고 있지만, 이 데이터를 어떻게 사용할 것인지를 pipeline에게 알려주는 역할을 하는 것이 View**이다.   
+`ID3D11RenderTargetView` 같은 View object는 GPU memory( resource )에 대한 해석 정보를 포함하고 있으며, 이를 통해 pipeline은 resource를 render target으로 인식하고 활용할 수 있다.   
+
 즉, 여기서 meta data( view )란, resource를 해석하고 특정 pipeline 단계에서 어떤 역할을 할지 정의해주는 부가적인 설정 정보를 뜻한다.   
 
 ## ID3D11Texture2D
