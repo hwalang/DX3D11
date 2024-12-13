@@ -2,6 +2,7 @@
   - [1. 모듈이 초기화가 됐는지 확인](#1-모듈이-초기화가-됐는지-확인)
   - [2. 멤버 변수를 초기화 하기 전, 지역 변수로 HW 체크](#2-멤버-변수를-초기화-하기-전-지역-변수로-hw-체크)
 - [Windows Programming: 부모 클래스에서 해당 인스턴스의 포인터를 전역 변수로 선언하는 이유](#windows-programming-부모-클래스에서-해당-인스턴스의-포인터를-전역-변수로-선언하는-이유)
+- [방대한 프로그램 코드를 읽는 방법](#방대한-프로그램-코드를-읽는-방법)
 
 <br><br>
 
@@ -57,7 +58,7 @@ if (FAILED(context.As(&m_context))) {
   return false;
 }
 ```
-m_device, m_context가 아닌 지역 변수로 먼저 device와 context를 불러온다.   
+**m_device, m_context가 아닌 지역 변수로 먼저 device와 context**를 불러온다.   
 D3D11을 지원하지 않는 HW를 사용하는 경우, 바로 멤버 변수에 초기화하면 어디서 에러가 발생했는지 알 수 없기 때문이다.   
 따라서 멤버 변수에 저장하기 전 HW가 버전을 지원하는지 체크하고, 이를 멤버 변수에 붙여넣는다.   
 
@@ -97,3 +98,25 @@ class member function에서 원하는 로직을 구현할 수 있으며, 이를 
 이는 windows programming에서 메시지를 처리하기 위한 방법 중 하나다.   
 
 <br>
+
+# 방대한 프로그램 코드를 읽는 방법
+```cpp
+if (FAILED(D3D11CreateDevice(
+        nullptr,                  // Specify nullptr to use the default adapter.
+        driverType,               // Create a device using the hardware graphics driver.
+        0,                        // Should be 0 unless the driver is D3D_DRIVER_TYPE_SOFTWARE.
+        createDeviceFlags,        // Set debug and Direct2D compatibility flags.
+        featureLevels,            // List of feature levels this app can support.
+        ARRAYSIZE(featureLevels), // Size of the list above.
+        D3D11_SDK_VERSION, // Always set this to D3D11_SDK_VERSION for Microsoft Store apps.
+        &device,           // Returns the Direct3D device created.
+        &featureLevel,     // Returns feature level of device created.
+        &context           // Returns the device immediate context.
+        ))) {
+    cout << "D3D11CreateDevice() failed." << endl;
+    return false;
+}
+```
+다른 사람이 작성한 코드를 읽다가 많은 매개변수를 요구하는 함수를 만날 수 있다.   
+이때 각 매개변수를 자세히 살펴보는 것이 아니라, `FAILED(CreateDevice())`에 초점을 맞춘다.   
+"함수 실행이 실패했을 때, console에 log를 찍고 `false`를 반환하구나"로 알아차렸다면, 다음 코드로 넘어간다.   
