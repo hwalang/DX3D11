@@ -1,4 +1,5 @@
 - [Introduce](#introduce)
+- [Graphics APIs](#graphics-apis)
 - [Graphics Hardware \& DirectX3D](#graphics-hardware--directx3d)
 - [DirectX Graphics Infrastructure( DXGI )](#directx-graphics-infrastructure-dxgi-)
 - [The Swap Chain](#the-swap-chain)
@@ -25,6 +26,16 @@
 
 # Introduce
 DirectX program을 만들기 위해 필요한 Graphics Concepts에 대해 알아본다.   
+
+# Graphics APIs
+![alt text](Images/GraphicsConcepts/GraphicsAPI.png)   
+게임 화면을 Display에 보여주기 위해서는 GPU hardware를 제어해야 한다.   
+하지만 프로그래머가 GPU를 하나하나 제어하기는 매우 어렵기 때문에 GPU 제조사에서 Driver를 제공한다.   
+Driver는 제조사 입장에서 특정 shape를 그리기 위해서 GPU를 어떻게 사용해야 하는지 알려주는 가이드다.   
+이러한 가이드를 프로그래머 입장에서 잘 사용하기 위해서 정의한 것이 Graphics API( Application Programming Interface )이다.   
+
+Graphics API( DirectX, OpenGL, Vulkan )가 필요한 이유는 GPU를 만드는 제조사가 다양하기 때문이다.   
+각 GPU가 동작하는 방식에 대해 몰라도 프로그래밍 할 수 있도록 도와주기 때문이다.   
 
 # Graphics Hardware & DirectX3D
 DirectX3D는 게임 플랫폼이 아니라 hardware interface이다. 즉, DirectX3D를 사용한다는 것은 Graphics hardware를 직접 조작하는 의미다.   
