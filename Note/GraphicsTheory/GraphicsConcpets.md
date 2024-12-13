@@ -50,7 +50,8 @@ graphic programming은 별도의 processor가 있을 뿐 아니라 video memory�
 **DirectX는 data가 system memory 또는 video memory에 저장되는 시기를 관리**한다.   
 
 # DirectX Graphics Infrastructure( DXGI )
-DXGI는 화면에 image를 보여주고, monitor와 video card가 처리할 수 있는 resolution( 해상도 )를 찾는 등 기본적인 작업을 처리하는 역할이다.   
+**DXGI는 여러 버전의 Direct3D가 공통적으로 사용할 수 있도록 display에 대한 저수준 제어 기능을 묶어놓은 것**이다.   
+화면에 image를 보여주고, monitor와 video card가 처리할 수 있는 resolution( 해상도 )를 찾는 등 기본적인 작업을 처리하는 역할이다.   
 ![alt text](Images/GraphicsConcepts/DXGI.png)   
 또한 **Direct3D와 hardware 간의 interface 역할을 수행**한다.   
 
