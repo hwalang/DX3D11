@@ -3,6 +3,7 @@
 	- [GPT](#gpt)
 	- [Summary](#summary)
 - [Pixel Shader를 Vertex Shader로 인식하는 경우](#pixel-shader를-vertex-shader로-인식하는-경우)
+- [vertice의 indices 공유로 나타나는 색깔 문제](#vertice의-indices-공유로-나타나는-색깔-문제)
 
 <br>
 
@@ -78,3 +79,6 @@ compiler가 pixel shader file을 vertex shader file로 인식하여 `Invalid vs_
 
 [참고 자료](https://stackoverflow.com/questions/45422730/error-invalid-vs-2-0-output-semantic)   
 **pixel shader file의 properties를 수정**한다.   
+
+# vertice의 indices 공유로 나타나는 색깔 문제
+[Initialization.md - AppFramework](AppFramework/1_Initialization.md/#13-vertex의-index-정보를-공유하는-경우-발생하는-문제점)   
