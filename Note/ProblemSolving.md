@@ -1,7 +1,8 @@
 - [삼각형이 잘리는 경우( Clipping )](#삼각형이-잘리는-경우-clipping-)
-  - [ME](#me)
-  - [GPT](#gpt)
-  - [Summary](#summary)
+	- [ME](#me)
+	- [GPT](#gpt)
+	- [Summary](#summary)
+- [Pixel Shader를 Vertex Shader로 인식하는 경우](#pixel-shader를-vertex-shader로-인식하는-경우)
 
 <br>
 
@@ -69,3 +70,11 @@ input layout과 vertex data의 불일치로 인해 정점 데이터가 잘못 �
 [ 해결 방법 ]
 input layout의 POSITION property를 DXGI_FORMAT_R32G32B32_FLOAT로 수정하여 두 정의를 일치시켰다.
 ```
+
+# Pixel Shader를 Vertex Shader로 인식하는 경우
+compiler가 pixel shader file을 vertex shader file로 인식하여 `Invalid vs_2_0 output semantic SV_Target` 에러가 발생했다.   
+
+![alt text](Images/ProblemSolving/HLSL_Compiler_Shader_Type.png)   
+
+[참고 자료](https://stackoverflow.com/questions/45422730/error-invalid-vs-2-0-output-semantic)   
+**pixel shader file의 properties를 수정**한다.   
