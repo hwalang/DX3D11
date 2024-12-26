@@ -4,6 +4,9 @@
 	- [Summary](#summary)
 - [Pixel Shader를 Vertex Shader로 인식하는 경우](#pixel-shader를-vertex-shader로-인식하는-경우)
 - [vertice의 indices 공유로 나타나는 색깔 문제](#vertice의-indices-공유로-나타나는-색깔-문제)
+- [precompiled header 방식에서 unexpected end of file error](#precompiled-header-방식에서-unexpected-end-of-file-error)
+	- [1. pch.h 포함](#1-pchh-포함)
+	- [2. 개별적인 파일에 precompiled header 끄기](#2-개별적인-파일에-precompiled-header-끄기)
 
 <br>
 
@@ -82,3 +85,27 @@ compiler가 pixel shader file을 vertex shader file로 인식하여 `Invalid vs_
 
 # vertice의 indices 공유로 나타나는 색깔 문제
 [Initialization.md - AppFramework](AppFramework/1_Initialization.md/#13-vertex의-index-정보를-공유하는-경우-발생하는-문제점)   
+
+# precompiled header 방식에서 unexpected end of file error
+Precompiled Header 방식을 사용하는 프로젝트에서 발생하는 unexpected end of file error를 해결하는 방법을 알아본다.   
+```
+error C1010: unexpected end of file while looking for precompiled header. Did you forget to add '#include "pch.h"' to your source?
+```
+header file에서 `#include "pch.h"`를 포함하고 있더라도, **.cpp에서도 `#include "pch.h"`를 가장 먼저 포함하지 않으면 compile 과정에서 파일의 예기치 않은 끝( unexpected end of file error ) 오류가 발생**할 수 있다.   
+
+## 1. pch.h 포함
+```cpp
+#include "pch.h"
+#include "Base.h"
+```
+현재 프로젝트가 precompiled header 방식을 사용 중이라면, 모든 source file은 compile time에 가장 먼저 해당 header( pch.h )를 포함해야 한다.   
+
+## 2. 개별적인 파일에 precompiled header 끄기
+```
+1. .cpp 파일의 properties
+2. C/C++
+3. Precompiled Headers
+4. Not Using Precompiled Headers
+```
+만약 일부 .cpp 파일에서 precompiled header가 필요 없을 수 있기 때문에, 해당 source file만 개별적으로 해당 옵션을 꺼준다.   
+그러면 **`#include "pch.h"`를 포함하지 않아도 에러가 발생하지 않는다**.   
