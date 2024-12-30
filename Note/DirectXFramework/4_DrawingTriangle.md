@@ -10,8 +10,9 @@
 	- [2. Creating a Vertex Buffer](#2-creating-a-vertex-buffer)
 	- [3. Filling the Vertex Buffer](#3-filling-the-vertex-buffer)
 - [Verifying the Input Layout](#verifying-the-input-layout)
-	- [1. Create the Input Elements](#1-create-the-input-elements)
-	- [2. Create the Input Layout Object](#2-create-the-input-layout-object)
+	- [1. InputLayout?](#1-inputlayout)
+	- [2. Create the Input Elements](#2-create-the-input-elements)
+	- [3. Create the Input Layout Object](#3-create-the-input-layout-object)
 - [Drawing the Primitive](#drawing-the-primitive)
 	- [1. `IASetVertexBuffers()`](#1-iasetvertexbuffers)
 	- [2. `IASetPrimitiveTopology()`](#2-iasetprimitivetopology)
@@ -331,15 +332,28 @@ void InitGraphics () {
 1. pipeline을 제어하기 위해서 shaders를 load 하고 set 했다.
 2. vertices를 사용하여 shape를 생성하고, 이를 GPU가 사용할 수 있도록 준비했다.
 
+## 1. InputLayout?
 user-defined struct에 vertices를 저장했을 때, GPU가 어떻게 이러한 정점들을 읽을 수 있는 능력이 있는지?   
 struct에 color 전에 location을 먼저 배치한 것을 어떻게 알 수 있는지?   
 다른 의도가 없다는 것을 어떻게 알 수 있는지?   
 **위 답은 "input layout"** 이다.   
 
 **input layout은 vertex struct의 layout을 포함하는 object**이다.   
-`ID3D11InputLayout` object는 우리의 `VERTEX` struct layout을 저장한다. 이 object는 `CreateInputLayout()`에서 생성한다.   
+[Graphics Pipeline](https://learn.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-graphics-pipeline)에서 Input-Assembler stage는 Memory Resource( Buffer, Texture, Constant Buffer )를 입력 받는다. 이러한 데이터는 IA로 들어간 후, shaders를 통과해서 진행된다.   
+**Memory Resources에서 IA로 들어가는 input vertex 데이터의 배치 상태( layout )이라서 이름이 InputLayout**이다.   
+```cpp
+vector<D3D11_INPUT_ELEMENT_DESC> samplingIED = {
+	{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+	{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 4 * 3, D3D11_INPUT_PER_VERTEX_DATA, 0},
+	{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 4 * 3 + 4 * 3, D3D11_INPUT_PER_VERTEX_DATA, 0}
+};
+```
+예를 들면, 위 layout은 Vertex 하나의 데이터가 POINT는 4byte float 3개, normal float 3개, Texcoord float 2개의 배치 구조를 가진다.   
 
-## 1. Create the Input Elements
+Rendering을 할 때, `IASetVertexBuffes()`를 호출하여 어떤 Vertex 데이터를 넣는지 지정하고, `IASetInputLayout()`을 호출하여 그 Vertex 데이터가 어떻게 구성되어 있는지를 지정한다.   
+이때 `IASetInputLayout()`에 `CreateInputLayout()`에서 생성한 layout을 넣는다.   
+
+## 2. Create the Input Elements
 vertex layout은 하나 또는 더 많은 input elements로 구성된다. **하나의 input element는 vertex의 하나의 property를 나타낸다**. 예를 들면, position과 color가 있다.   
 각 element는 `D3D11_INPUT_ELEMENT_DESC`라는 struct에 정의된다. 이 구조체는 하나의 vertex property를 설명한다.   
 ```cpp
@@ -368,7 +382,7 @@ D3D11_INPUT_ELEMENTS_DESC ied[] = {
 
 마지막 인자는 사용하지 않기 때문에 0으로 세팅한다.   
 
-## 2. Create the Input Layout Object
+## 3. Create the Input Layout Object
 vertex format을 나타내는 object를 생성한다.   
 ```cpp
 HRESULT CreateInputLayout (
