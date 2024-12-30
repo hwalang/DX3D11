@@ -1,11 +1,11 @@
 - [Introduce](#introduce)
 - [Common Initialization](#common-initialization)
-	- [1. Global Variables](#1-global-variables)
-	- [2. Function Prototypes](#2-function-prototypes)
-	- [3. main()](#3-main)
-	- [4. InitMainWindow()](#4-initmainwindow)
-	- [5. InitD3D()](#5-initd3d)
-	- [InitGUI()](#initgui)
+	- [1. Member Variables](#1-member-variables)
+	- [2. Initialize()](#2-initialize)
+		- [2.1. AppBase::Initialize()](#21-appbaseinitialize)
+		- [2.2. AppBase::InitMainWindow()](#22-appbaseinitmainwindow)
+		- [3.3. AppBase::InitDirect3D()](#33-appbaseinitdirect3d)
+		- [2.3. AppBase::InitGUI()](#23-appbaseinitgui)
 - [Rendering Apps Initialization](#rendering-apps-initialization)
 	- [1. MakeBox()](#1-makebox)
 		- [1.1. 정육면체 pixel( vertices ) 정보 세팅](#11-정육면체-pixel-vertices--정보-세팅)
@@ -16,154 +16,168 @@
 객체 지향적 설계를 위한 Initialization을 살펴본다.   
 
 # Common Initialization
-Base App의 초기화 부분을 알아본다. 지금은 객체 지향적으로 설계하기 전이므로 global variables를 사용한다.   
-이때, **BaseApp을 상속 받는 다양한 Apps는 Common Initialization을 기본으로 호출한 뒤, 각자에게 맞는 초기화를 진행**한다.   
-## 1. Global Variables
+**AppBase을 상속 받는 다양한 Apps는 Common Initialization을 기본으로 호출한 뒤, 각자에게 맞는 초기화를 진행**한다.   
+## 1. Member Variables
 ```cpp
-#define SCREEN_WIDTH 1280
-#define SCREEN_HEIGHT 960
-HWND g_mainWindow;
+class AppBase {
 
-ID3D11Device* g_device;
-ID3D11DeviceContext* g_devcon;
-IDXGISwapChain* g_swapChain;
-ID3D11RenderTargetView* g_renderTargetView;
-ID3D11RasterizerState* g_rasterizerState;
+public:
+	// windows
+	int m_screenWidth;
+	int m_screenHeight;
+	HWND m_mainWindow;
 
-// depth buffer
-ID3D11Texture2D* g_depthStencilBuffer;
-ID3D11DepthStencilView* g_depthStencilView;
-ID3D11DepthStencilState* g_depthStencilState;
+	ComPtr<ID3D11Device> m_device;
+	ComPtr<ID3D11DeviceContext> m_devcon;
+	ComPtr<IDXGISwapChain> m_swapChain;
+	ComPtr<ID3D11RenderTargetView> m_renderTargetView;
+	ComPtr<ID3D11RasterizerState> m_rasterizerState;
 
-D3D11_VIEWPORT g_viewport;
+	ComPtr<ID3D11Texture2D> m_depthStencilBuffer;
+	ComPtr<ID3D11DepthStencilView> m_depthStencilView;
+	ComPtr<ID3D11DepthStencilState> m_depthStencilState;
+
+	D3D11_VIEWPORT m_viewport;
+};
 ```
-## 2. Function Prototypes
-```cpp
-bool InitMainWindow ();
-bool InitD3D ();
-bool InitGUI ();
-```
+모든 App에서 사용할 변수를 관리한다.   
 
-## 3. main()
+## 2. Initialize()
 ```cpp
-int main ()
-{
+class AppBase {
+
+public:
+	AppBase ();
+	virtual ~AppBase ();
+
+	virtual bool Initialize ();
+
+	virtual LRESULT CALLBACK MsgProc ( HWND hwnd , UINT msg , WPARAM wParam , LPARAM lParam );
+
+protected:
+	bool InitMainWindow ();
+	bool InitDirect3D ();
+	bool InitGUI ();
+
+};
+```
+window, Direct3D, imGUI를 초기화하는 기능이다.   
+생성자와 소멸자, MsgProc()는 window를 위한 기능이 존재한다.   
+
+### 2.1. AppBase::Initialize()
+```cpp
+bool AppBase::Initialize () {
 	if ( !InitMainWindow () ) {
-		std::cout << "InitMainWindow() failed" << std::endl;
-		return -1;
+		return false;
 	}
 
-	if ( !InitD3D () ) {
-		std::cout << "InitD3D() failed." << std::endl;
-		return -1;
+	if ( !InitDirect3D () ) {
+		return false;
 	}
 
 	if ( !InitGUI () ) {
-		std::cout << "InitGUI() failed" << std::endl;
-		return -1;
+		return false;
 	}
 
-	MSG msg = { 0 };
-	while ( WM_QUIT != msg.message ) {
-		if ( PeekMessage ( &msg , NULL , 0 , 0 , PM_REMOVE ) ) {
-			TranslateMessage ( &msg );
-			DispatchMessage ( &msg );
-		}
-		else {
-			RenderFrame ();
-		}
-	}
-
-	CleanD3D ();
-
-	return 0;
+	return true;
 }
 ```
+순서대로 초기화를 진행한다.   
+**`AppBase`를 상속 받는 자식 Apps는 해당 함수를 Init 단계에서 호출**한다.   
 
-## 4. InitMainWindow()
-[WindowsFramework](/Note/WindowsFramework/)를 참고한다.   
+### 2.2. AppBase::InitMainWindow()
 ```cpp
-bool InitMainWindow () {
+AppBase* g_appBase = nullptr;
+
+LRESULT CALLBACK WndProc ( HWND hwnd , UINT msg , WPARAM wParam , LPARAM lParam ) {
+	return g_appBase->MsgProc (hwnd, msg, wParam, lParam);
+}
+
+// ...
+
+LRESULT CALLBACK AppBase::MsgProc ( HWND hwnd , UINT msg , WPARAM wParam , LPARAM lParam ) {
+	switch ( msg ) {
+	case WM_SYSCOMMAND:
+		if ( ( wParam & 0xfff0 ) == SC_KEYMENU ) // Disable ALT application menu
+			return 0;
+	case WM_DESTROY:
+		::PostQuitMessage ( 0 );
+		return 0;
+	}
+
+	return DefWindowProc ( hwnd , msg , wParam , lParam );
+}
+```
+[window programming TIP](/Note/DevTips.md/#windows-programming-부모-클래스에서-해당-인스턴스의-포인터를-전역-변수로-선언하는-이유)에서 전역 변수와 함수를 사용하는 이유를 설명했다.   
+```cpp
+bool AppBase::InitMainWindow () {
 	WNDCLASSEX wc;
 	ZeroMemory ( &wc , sizeof ( WNDCLASSEX ) );
-
 	wc.cbSize = sizeof ( WNDCLASSEX );
 	wc.style = CS_CLASSDC;
 	wc.lpfnWndProc = WndProc;
 	wc.hCursor = LoadCursor ( NULL , IDC_ARROW );
 	wc.lpszClassName = L"WindowClass1";
-
 	if ( !RegisterClassEx ( &wc ) ) {
-		std::cout << "RegisterClassEx() failed." << std::endl;
+		cout << "RegisterClassEx() failed" << endl;
 		return false;
 	}
 
-	RECT wr = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
+	RECT wr = { 0, 0, m_screenWidth, m_screenHeight };
 	AdjustWindowRect ( &wr , WS_OVERLAPPEDWINDOW , FALSE );
-
-	HWND mainWindow = CreateWindowEx (
+	m_mainWindow = CreateWindowEx ( 
 		NULL ,
-		wc.lpszClassName ,     // name of the window class
-		L"window1 title" ,     // title of the window
-		WS_OVERLAPPEDWINDOW ,  // window style
-		0 ,                    // x-position of the window
-		0 ,                    // y-position of the window
-		wr.right - wr.left ,   // width of the window
-		wr.bottom - wr.top ,   // height of the window
-		NULL ,                 // we have no parent window
-		NULL ,                 // we aren't using menus
-		wc.hInstance ,         // apllication handle
-		NULL // used with multiple windows
-	);
+		wc.lpszClassName , L"window1 title" , WS_OVERLAPPEDWINDOW ,
+		0 , 0 , wr.right - wr.left , wr.bottom - wr.top ,
+		NULL , NULL ,
+		wc.hInstance ,
+		NULL );
 
-	if ( !mainWindow ) {
-		std::cout << "CreateWindow() failed." << std::endl;
+	if ( !m_mainWindow ) {
+		cout << "CreateWindowEx() failed" << endl;
 		return false;
 	}
 
-	g_mainWindow = mainWindow;
-	ShowWindow ( g_mainWindow , SW_SHOWDEFAULT );
-	UpdateWindow ( g_mainWindow );
+	ShowWindow ( m_mainWindow, SW_SHOWDEFAULT );
+	UpdateWindow ( m_mainWindow );
 
 	return true;
 }
 ```
+[WindowsFramework](/Note/WindowsFramework/)를 참고한다.   
 
-## 5. InitD3D()
-[InitD3DForClass.md - DirectXFramework](/Note/DirectXFramework/5_InitD3DForClass.md)를 참고한다.   
+### 3.3. AppBase::InitDirect3D()
 ```cpp
-bool InitD3D () {
+bool AppBase::InitDirect3D () {
 	// Creating [ device, device_context, swap_chain, render_target_view, viewport, rasterizer_state ]
-	// Creating [ depth_stencil_buffer, depth_stencil_view, 
+	// Creating [ depth_stencil_buffer, depth_stencil_view ]
+
+	// D3D_DRIVER_TYPE_WARP( Driver 호환성 문제가 발생하면 )
+	const D3D_DRIVER_TYPE driverType = D3D_DRIVER_TYPE_HARDWARE;
 
 	UINT createDeviceFlags = 0;
 #if defined(DEBUG) || defined(_DEBUG)
 	createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-	const D3D_DRIVER_TYPE driverType = D3D_DRIVER_TYPE_HARDWARE;	// D3D_DRIVER_TYPE_WARP( Driver 호환성 문제가 발생하면 )
 	const D3D_FEATURE_LEVEL featureLevels[ 2 ] = {
 		D3D_FEATURE_LEVEL_11_0,
 		D3D_FEATURE_LEVEL_9_3
 	};
 
-	ID3D11Device* device; 
-	ID3D11DeviceContext* devcon;
+	ComPtr<ID3D11Device> device;
+	ComPtr<ID3D11DeviceContext> devcon;
 	D3D_FEATURE_LEVEL featureLevel;
 
 	if ( FAILED ( D3D11CreateDevice (
-		nullptr ,
-		driverType ,
-		0 ,
-		createDeviceFlags ,
-		featureLevels ,
-		ARRAYSIZE ( featureLevels ) ,
+		nullptr , driverType , 0 , createDeviceFlags ,
+		featureLevels , ARRAYSIZE ( featureLevels ) ,
 		D3D11_SDK_VERSION ,
-		&device ,					// out
-		&featureLevel ,		// out
-		&devcon						// out
+		&device ,
+		&featureLevel ,
+		&devcon
 	) ) ) {
-		std::cout << "D3D11CreateDevice() failed" << std::endl;
+		cout << "D3D11CreateDevice() failed" << endl;
 		return false;
 	}
 
@@ -173,39 +187,33 @@ bool InitD3D () {
 		return false;
 	}
 
-	// ComPtr::AS()는 내부적으로 QueryInterface()를 호출해서 해당 interface로의 casting이 가능한지 여부를 HRESULT로 반환한다.
-	// 이런 방식으로 device와 context에 문제가 없음을 알고 싶다면, QueryInterface()를 직접 호출한다.
-	if ( FAILED ( device->QueryInterface ( __uuidof( ID3D11Device ) , ( void** ) &g_device ) ) ) {
-		std::cout << "device->QueryInterface() failed" << std::endl;
-		return false;
-	}
-	if ( FAILED ( devcon->QueryInterface ( __uuidof( ID3D11DeviceContext ) , ( void** ) &g_devcon ) ) ) {
-		std::cout << "devcon->QueryInterface() failed" << std::endl;
-		return false;
-	}
-	g_device = device;
-	g_devcon = devcon;
-	device->Release ();
-	devcon->Release ();
-
 	// DirectX에서 지원하는 MSAA를 hardware가 지원하나?
 	// swap chain과 depth buffer에서 MSAA 설정을 이용한다. 
 	UINT numQualityLevels;
-	g_device->CheckMultisampleQualityLevels ( DXGI_FORMAT_R8G8B8A8_UNORM , 4 , &numQualityLevels );
+	device->CheckMultisampleQualityLevels ( DXGI_FORMAT_R8G8B8A8_UNORM , 4 , &numQualityLevels );
 	if ( numQualityLevels <= 0 ) {
-		std::cout << "MSAA not supported" << std::endl;
+		cout << "MSAA not supported" << endl;
+	}
+
+	if ( FAILED ( device.As ( &m_device ) ) ) {
+		cout << "device.As() failed" << endl;
+		return false;
+	}
+	if ( FAILED ( devcon.As ( &m_devcon ) ) ) {
+		cout << "devcon.As() failed" << endl;
+		return false;
 	}
 
 	DXGI_SWAP_CHAIN_DESC scd;
 	ZeroMemory ( &scd , sizeof ( scd ) );
 	scd.BufferCount = 2;
 	scd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	scd.BufferDesc.Width = SCREEN_WIDTH;
-	scd.BufferDesc.Height = SCREEN_HEIGHT;
+	scd.BufferDesc.Width = m_screenWidth;
+	scd.BufferDesc.Height = m_screenHeight;
 	scd.BufferDesc.RefreshRate.Numerator = 60;
 	scd.BufferDesc.RefreshRate.Denominator = 1;
 	scd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	scd.OutputWindow = g_mainWindow;
+	scd.OutputWindow = m_mainWindow;
 	scd.Windowed = TRUE;
 	scd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 	scd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
@@ -218,63 +226,47 @@ bool InitD3D () {
 		scd.SampleDesc.Quality = 0;
 	}
 
+	// 이전까지 device, devcon, swapchain은 모두 값이 할당됐다.
+	// D3D11CreateDeviceAndSwapChain()를 수행하면 m_swapChain이 null이 된다.
+	// mainWindow가 존재하면 에러가 발생하지 않는다.
 	if ( FAILED ( D3D11CreateDeviceAndSwapChain (
-		0,
-		driverType ,
-		0 ,
-		createDeviceFlags ,
-		featureLevels ,
-		1 ,
-		D3D11_SDK_VERSION ,
-		&scd ,
-		&g_swapChain ,
-		&g_device ,
-		&featureLevel ,
-		&g_devcon ) ) ) {
-		std::cout << "D3D11CreateDeviceAndSwapChain() failed." << std::endl;
+		0, driverType, 0, createDeviceFlags,
+		featureLevels,
+		1,	// ARRAYSIZE(featureLevels)
+		D3D11_SDK_VERSION,
+		&scd,
+		&m_swapChain, // out
+		&m_device, // out
+		&featureLevel, // out
+		&m_devcon // out
+		) ) ) {
+		cout << "D3D11CreateDeviceAndSwapChain() failed" << endl;
 		return false;
 	}
 
-	// Set the render target
-	ID3D11Texture2D* pBackBuffer;
-	g_swapChain->GetBuffer ( 0 , IID_PPV_ARGS(&pBackBuffer ));
-	if ( pBackBuffer ) {
-		g_device->CreateRenderTargetView ( pBackBuffer , NULL , &g_renderTargetView );
-		pBackBuffer->Release ();
-	}
-	else {
-		std::cout << "CreateRenderTargetView() failed." << std::endl;
-		return false;
-	}
-	
-
-	// Set the viewport
-	ZeroMemory ( &g_viewport , sizeof ( D3D11_VIEWPORT ) );
-	g_viewport.TopLeftX = 0;
-	g_viewport.TopLeftY = 0;
-	g_viewport.Width = float(SCREEN_WIDTH);
-	g_viewport.Height = float(SCREEN_HEIGHT);
+	ZeroMemory ( &m_viewport , sizeof ( D3D11_VIEWPORT ) );
+	m_viewport.TopLeftX = 0;
+	m_viewport.TopLeftY = 0;
+	m_viewport.Width = float ( m_screenWidth );
+	m_viewport.Height = float ( m_screenHeight );
 	// Depth Buffering을 사용하기 위한 options
-	g_viewport.MinDepth = 0.0f;
-	g_viewport.MaxDepth = 1.0f;
-	g_devcon->RSSetViewports ( 1 , &g_viewport );	// Rasterization Stage( 3D coordinates(world) -> 2D coordinates(screen) )
+	m_viewport.MinDepth = 0.0f;
+	m_viewport.MaxDepth = 1.0f;
 
-	// Create a rasterizer state
 	D3D11_RASTERIZER_DESC rastDesc;
 	ZeroMemory ( &rastDesc , sizeof ( D3D11_RASTERIZER_DESC ) );
 	rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
 	rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
 	rastDesc.FrontCounterClockwise = false;
-	g_device->CreateRasterizerState ( &rastDesc , &g_rasterizerState );
+	m_device->CreateRasterizerState ( &rastDesc , &m_rasterizerState );
 
-	// Create Depth Buffer & Stencil Buffer
-	// depth 값을 저장하는 buffer( memory )
 	D3D11_TEXTURE2D_DESC depthStencilBufferDesc;
-	depthStencilBufferDesc.Width = SCREEN_WIDTH;
-	depthStencilBufferDesc.Height = SCREEN_HEIGHT;
+	depthStencilBufferDesc.Width = m_screenWidth;
+	depthStencilBufferDesc.Height = m_screenHeight;
 	depthStencilBufferDesc.MipLevels = 1;
 	depthStencilBufferDesc.ArraySize = 1;
-	depthStencilBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;	// Depth: unsigned normalized int 24bit, Stencil: unsigned int 8bit
+	// Depth: unsigned normalized int 24bit, Stencil: unsigned int 8bit
+	depthStencilBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	if ( numQualityLevels > 0 ) {
 		depthStencilBufferDesc.SampleDesc.Count = 4;
 		depthStencilBufferDesc.SampleDesc.Quality = numQualityLevels - 1;
@@ -283,17 +275,19 @@ bool InitD3D () {
 		depthStencilBufferDesc.SampleDesc.Count = 1;
 		depthStencilBufferDesc.SampleDesc.Quality = 0;
 	}
-	depthStencilBufferDesc.Usage = D3D11_USAGE_DEFAULT;		// texture memory를 어떻게 사용할 것인가?
+	depthStencilBufferDesc.Usage = D3D11_USAGE_DEFAULT; // texture memory를 어떻게 사용할 것인가?
 	depthStencilBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 	depthStencilBufferDesc.CPUAccessFlags = 0;
 	depthStencilBufferDesc.MiscFlags = 0;
 
-	if ( FAILED ( g_device->CreateTexture2D ( &depthStencilBufferDesc , 0 , &g_depthStencilBuffer ) ) ) {
-		std::cout << "CreateTexture2D() failed" << std::endl;
+	if ( FAILED ( m_device->CreateTexture2D ( &depthStencilBufferDesc , 0 , m_depthStencilBuffer.GetAddressOf() ) ) ) {
+		cout << "CreateTexture2D() failed" << endl;
+		return false;
 	}
 	// 이를 통해 생성한 DepthStencilView를 이용해서 DepthStencilBuffer를 사용한다.
-	if ( FAILED ( g_device->CreateDepthStencilView ( g_depthStencilBuffer , 0 , &g_depthStencilView ) ) ) {
-		std::cout << "CreateDepthStencilView() failed" << std::endl;
+	if ( FAILED ( m_device->CreateDepthStencilView ( m_depthStencilBuffer.Get() , 0 , &m_depthStencilView)) ) {
+		cout << "CreateDepthStencilView() failed" << endl;
+		return false;
 	}
 
 	// DepthStencilView를 어떤 상태로 사용하나?
@@ -301,48 +295,48 @@ bool InitD3D () {
 	ZeroMemory ( &depthStencilDesc , sizeof ( D3D11_DEPTH_STENCIL_DESC ) );
 	depthStencilDesc.DepthEnable = true;
 	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK::D3D11_DEPTH_WRITE_MASK_ALL;
-	depthStencilDesc.DepthFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_LESS_EQUAL;	// depth 값이 더 작거나 같으면 화면에 그린다.
-	if ( FAILED ( g_device->CreateDepthStencilState ( &depthStencilDesc , &g_depthStencilState ) ) ) {
+	depthStencilDesc.DepthFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_LESS_EQUAL; // depth 값이 더 작거나 같으면 화면에 그린다.
+	if ( FAILED ( m_device->CreateDepthStencilState ( &depthStencilDesc , m_depthStencilState.GetAddressOf() ) ) ) {
 		std::cout << "CreateDepthStencilState() failed" << std::endl;
+		return false;
 	}
-
-	InitPipeline ();
-	InitGraphics ();
 
 	return true;
 }
 ```
+[InitD3DForClass.md - DirectXFramework](/Note/DirectXFramework/5_InitD3DForClass.md)를 참고한다.   
 
-## InitGUI()
-[1_InitializingGUI - ImGui](/Note/ImGUI/1_InitializingGUI.md)를 참고한다.   
+### 2.3. AppBase::InitGUI()
 ```cpp
-bool InitGUI () {
+bool AppBase::InitGUI () {
 	IMGUI_CHECKVERSION ();
 	ImGui::CreateContext ();
 	ImGuiIO& io = ImGui::GetIO ();
 	( void ) io;
-	io.DisplaySize = ImVec2 ( float ( SCREEN_WIDTH ) , float ( SCREEN_HEIGHT ) );
+	io.DisplaySize = ImVec2 ( float ( m_screenWidth ) , float ( m_screenHeight ) );
 	ImGui::StyleColorsLight ();
 
 	// setup platform/renderer backends
-	if ( !ImGui_ImplDX11_Init ( g_device , g_devcon )) {
+	if ( !ImGui_ImplDX11_Init ( m_device.Get() , m_devcon.Get()) ) {
 		return false;
 	}
 
-	if ( !ImGui_ImplWin32_Init ( g_mainWindow ) ) {
+	if ( !ImGui_ImplWin32_Init ( m_mainWindow ) ) {
 		return false;
 	}
 
 	return true;
 }
 ```
+[1_InitializingGUI - ImGui](/Note/ImGUI/1_InitializingGUI.md)를 참고한다.   
+
 
 # Rendering Apps Initialization
-Base App을 상속받는 자식 App 들은 자신만의 초기화 기능을 가진다.   
+`AppBase`를 상속받는 자식 App 들은 자신만의 초기화 기능을 가진다.   
 **Rendering 역할을 수행하는 자식 앱들의 초기화 구조**를 살펴본다.   
 ## 1. MakeBox()
 정육면체를 나타내는 vertices와 indices를 반환하는 함수다.   
-즉, **현재 Apps는 화면에 정육면체를 rendering 하기 위한 객체**다.   
+즉, **현재 App은 정육면체를 rendering 한 화면을 띄우기 위한 객체**다.   
 ```cpp
 struct Vertex {
 	Vector3 position;
