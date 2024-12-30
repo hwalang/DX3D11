@@ -90,6 +90,7 @@ func1 (const wstring &filename) {
 
 **`pEntryPoint`는 shader entry point function의 이름을 저장**한다. **해당 함수에서 shader execution이 시작**한다.   
 여기서는 `VShader`와 `PShader`다. 일반적으로 `"main"` 함수가 사용되지만, 다른 이름을 사용할 수도 있다.   
+이러한 **이름은 shader file 내부에 cpp의 entrypoint인 `main()`와 같은 이름을 지정하는 것**이다.   
 
 `pTarget`은 compile 할 shader의 대상 profile을 지정하는 문자열이다. **shader profile**은 compiler에게 우리가 compile할 shader 유형과 version을 의미한다.   
 vertex shader는 `"vs_5_0"`이고, pixel shader는 `"ps_5_0"`이다. "vs"는 vertex shader를 의미하고, "_5_0"은 HLSL version 5.0을 의미한다.   
@@ -108,7 +109,7 @@ void InitPipeline () {
 	HRESULT psHr = D3DCompileFromFile ( L"Shader.hlsl" , 0 , 0 , "PShader" , "ps_5_0" , 0 , 0 , &VS , &PSErrorBlob );
 }
 ```
-vertex shader의 경우, `{VSFilename}.hlsl` 파일을 load 한 후, 여기서 "main" 함수를 찾아 HLSL version 5.0으로 compile 한 후 결과를 `ID3DBlob`인 `VS`에 저장한다.   
+vertex shader의 경우, `{VSFilename}.hlsl` 파일을 load 한 후, 여기서 "VShader" 함수를 찾아 HLSL version 5.0으로 compile 한 후 결과를 `ID3DBlob`인 `VS`에 저장한다.   
 
 ### error handling
 ```cpp
@@ -141,7 +142,7 @@ CheckReulst(psHr, PSErrorBlob);
 ID3D11VertexShader* pVS;      // the vertex shader
 ID3D11PixelShader* pPS;       // the pixel shader
 ```
-각 shader는 자신만의 COM object인 `ID3D11__Shader`에 저장된다.   
+각 shader는 자신만의 COM object인 `ID3D11{ }Shader`에 저장된다.   
 ```cpp
 // load and compile the two shaders
 // ...
@@ -153,7 +154,7 @@ ID3D11PixelShader* pPS;       // the pixel shader
 dev->CreateVertexShader(VS->GetBufferPointer(), VS->GetBufferSize(), NULL, &pVS);
 dev->CreatePixelShader(PS->GetBufferPointer(), PS->GetBufferSize(), NULL, &pPS);
 ```
-shader pointer가 준비되면, shader object를 `device->Create__Shader()`를 사용해서 생성한다.   
+shader pointer가 준비되면, shader object를 `device->Create{ }Shader()`를 사용해서 생성한다.    
 이 함수는 **compiled shader로부터 Shader COM object를 생성**한다.   
 
 [ID3DBlob interface - MS Learn](https://learn.microsoft.com/en-us/previous-versions/windows/desktop/legacy/ff728743(v=vs.85))   
@@ -172,7 +173,7 @@ vertex shader COM object를 생성하고 간접적으로 접근하는 방법으�
 devcon->VSSetShader(pVS, 0, 0);
 devcon->PSSetShader(pPS, 0, 0);
 ```
-`__SetShader()` 함수의 첫 인자는 설정할 shader object의 주소를 넘겨준다. 나머지는 나중에 살펴본다.   
+`{ }SetShader()` 함수의 첫 인자는 설정할 shader object의 주소를 넘겨준다. 나머지는 나중에 살펴본다.   
 
 ## 4. Release COM objects
 ```cpp
@@ -184,6 +185,8 @@ pPS->Release();
 이제 삼각형을 위한 정점을 생성한다.   
 
 # Vertex Buffers
+[Input-Assembler Stage - MSLearn](https://learn.microsoft.com/ko-kr/windows/win32/direct3d11/d3d10-graphics-programming-guide-input-assembler-stage-getting-started)   
+
 **vertex란, 3D space에서 하나의 정확한 point에 대한 location과 properties를 정의**한다.   
 location은 세 개의 숫자로 구성되고, properties 또한 숫자 값으로 정의된다.   
 
@@ -203,7 +206,7 @@ Direct3D는 **input layout**이라고 불리는 것을 사용한다. input layou
 ## 1. Creating Vertices
 ```cpp
 struct VERTEX {
-	FLOAT X, Y, Z;								// position
+	FLOAT X, Y, Z; // position
 	D3D11_VIDEO_COLOR_RGBA Color;	// color
 };
 ```
@@ -226,17 +229,17 @@ C++에서 하나의 struct를 생성할 때, 그 데이터는 system memory에 �
 
 이러한 역할을 수행하는 COM object는 `ID3D11Buffer`이다. 이 객체를 생성하기 위해서 `CreateBuffer()` 함수를 사용한다.   
 ```cpp
-ID3D11Buffer* pVBuffer; 		// global
+ID3D11Buffer* pVBuffer; // global
 
 D3D11_BUFFER_DESC bd;
 ZeroMemory(&bd, sizeof(bd));
 
-bd.Usage = D3D11_USAGE_DYNAMIC;								// write access by CPU and GPU
-bd.ByteWidth = sizeof(VERTEX) * 3;						// size is the VERTEX struct * 3
-bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;			// use as a vertex buffer
-bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;		// allow CPU to write in buffer and 0 if no CPU access is necessary
+bd.Usage = D3D11_USAGE_DYNAMIC; // write access by CPU and GPU
+bd.ByteWidth = sizeof(VERTEX) * 3; // size is the VERTEX struct * 3
+bd.BindFlags = D3D11_BIND_VERTEX_BUFFER; // use as a vertex buffer
+bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // allow CPU to write in buffer and 0 if no CPU access is necessary
 
-dev->CreateBuffer(&bd, NULL, &pVBuffer);			// create the buffer
+dev->CreateBuffer(&bd, NULL, &pVBuffer); // create the buffer
 ```
 `D3D11_BUFFER_DESC`는 buffer의 properties를 포함하는 struct이다.   
 
@@ -273,8 +276,8 @@ buffer를 가능한 효율적으로 설정하기 위해서는 Direct3D는 buffer
 ```cpp
 D3D11_MAPPED_SUBRESOURCE ms;
 devcon->Map(pVBuffer, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &ms);		// map the buffer
-memcpy(ms.pData, OurVertices, sizeof(OurVertices));									// copy the data
-devcon->Unmap(pVBuffer, NULL);																			// unmap the buffer
+memcpy(ms.pData, OurVertices, sizeof(OurVertices)); // copy the data
+devcon->Unmap(pVBuffer, NULL); // unmap the buffer
 ```
 `D3D11_MAPPED_SUBRESOURCE`는 buffer를 mapping 한 후, 해당 buffer에 대한 정보를 채우는 struct이다.   
 이 정보에는 buffer's location에 대한 pointer를 포함한다. `ms.pData`를 통해 해당 pointer에 접근할 수 있다.   
@@ -329,15 +332,15 @@ void InitGraphics () {
 2. vertices를 사용하여 shape를 생성하고, 이를 GPU가 사용할 수 있도록 준비했다.
 
 user-defined struct에 vertices를 저장했을 때, GPU가 어떻게 이러한 정점들을 읽을 수 있는 능력이 있는지?   
-struct에 color 전에 location을 먼저 배치한 것을 어떻게 알 수 있나?   
-다른 의도가 없다는 것을 어떻게 알 수 있나?   
-위 답은 "input layout" 이다.   
+struct에 color 전에 location을 먼저 배치한 것을 어떻게 알 수 있는지?   
+다른 의도가 없다는 것을 어떻게 알 수 있는지?   
+**위 답은 "input layout"** 이다.   
 
-input layout은 vertex struct의 layout을 포함하는 object이다.   
+**input layout은 vertex struct의 layout을 포함하는 object**이다.   
 `ID3D11InputLayout` object는 우리의 `VERTEX` struct layout을 저장한다. 이 object는 `CreateInputLayout()`에서 생성한다.   
 
 ## 1. Create the Input Elements
-vertex layout은 하나 또는 더 많은 input elements로 구성된다. 하나의 input element는 vertex의 하나의 property를 나타낸다. 예를 들면, position과 color가 있다.   
+vertex layout은 하나 또는 더 많은 input elements로 구성된다. **하나의 input element는 vertex의 하나의 property를 나타낸다**. 예를 들면, position과 color가 있다.   
 각 element는 `D3D11_INPUT_ELEMENT_DESC`라는 struct에 정의된다. 이 구조체는 하나의 vertex property를 설명한다.   
 ```cpp
 D3D11_INPUT_ELEMENTS_DESC ied[] = {
@@ -400,7 +403,7 @@ void InitPipeline(const std::wstring& VSFilename, const std::wstring& PSFilename
 	devcon->IASetInputLayout(pLayout);
 }
 ```
-VS의 file( `GetBufferPointer()` )와 size( `GetBufferSize()`)에 접근할 필요가 있기 때문에 `InitPipeline()`에 작성한다.   
+VS의 file( `GetBufferPointer()` )과 size( `GetBufferSize()`)에 접근할 필요가 있기 때문에 `InitPipeline()`에 작성한다.   
 이러한 Input Layout을 생성해도 해당 object의 세팅이 완료될 때까지는 아무런 동작을 할 수 없다. 따라서 `IASetInputLayout()`을 호출하여 설정을 완료한다.   
 
 # Drawing the Primitive
@@ -441,19 +444,17 @@ devcon->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 이 함수는 vertex buffer에 있는 primitives를 back buffer에 그린다.   
 ```cpp
 void Draw(
-	UINT VertexCount,						// the number of vertices to be drawn
-	UINT StartVertexLocation,		// the first vertex to be drawn
+	UINT VertexCount, // the number of vertices to be drawn
+	UINT StartVertexLocation, // the first vertex to be drawn
 );
 ```
 첫 인자는 그려야 할 vertices의 수를 나타내며, 두 번째 인자는 buffer의 첫 vertex의 번호를 말한다.   
 ```cpp
-devcon->Draw(3, 0);			// draw 3 vertices, starting from vertex 0
+devcon->Draw(3, 0);	// draw 3 vertices, starting from vertex 0
 ```
 
 ```cpp
 void RenderFrame() {
-	// clear the back buffer to a deep blue
-
 	// select which vertex buffer to display
 	UINT stride = sizeof(VERTEX);
 	UINT offset = 0;
