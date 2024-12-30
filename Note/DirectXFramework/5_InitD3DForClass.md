@@ -265,13 +265,13 @@ RS에 대한 내용은 `#5`에서 다룬다.
 
 ## 5. Rasterizer State
 ```cpp
-	// Create a rasterizer state
-	D3D11_RASTERIZER_DESC rastDesc;
-	ZeroMemory ( &rastDesc , sizeof ( D3D11_RASTERIZER_DESC ) );
-	rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
-	rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
-	rastDesc.FrontCounterClockwise = false;
-	g_device->CreateRasterizerState ( &rastDesc , &g_rasterizerState );
+// Create a rasterizer state
+D3D11_RASTERIZER_DESC rastDesc;
+ZeroMemory ( &rastDesc , sizeof ( D3D11_RASTERIZER_DESC ) );
+rastDesc.FillMode = D3D11_FILL_MODE::D3D11_FILL_SOLID;
+rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_NONE;
+rastDesc.FrontCounterClockwise = false;
+g_device->CreateRasterizerState ( &rastDesc , &g_rasterizerState );
 ```
 ### 5.1. Rasterizer Stage
 [Rasterizer Stage - MSLearn](https://learn.microsoft.com/en-us/windows/win32/direct3d11/d3d10-graphics-programming-guide-rasterizer-stage)   
@@ -282,7 +282,7 @@ Rasterization Stage에서는 real-time 3D graphics를 보여주기 위해서 vec
 ### 5.2. D3D11_RASTERIZER_DESC
 FillMode는 `D3D11_FILL_SOLID`와 `D3D11_FILL_WIREFRAME`가 존재한다. **삼각형을 채우는 방식과 선으로 그리는 방식**이다.   
 CullMode는 `NONE`, `FRONT`, `BACK` options가 존재하는데, **모든 삼각형을 그리거나 삼각형의 앞면/뒷면을 그리지 않도록 설정**한다.   
-**`FrontCounterClockwise`는 하나의 삼각형이 FRONT인지 BACK facing인지 결정**한다. `TRUE`라면, front-facing으로 간주하여 각 정점들은 render target에게 counter-clockwise라면 정면으로 간주하고, clockwise이면 후면으로 간주한다. `FALSE`라면, `TRUE`의 반대이다.   
+**`FrontCounterClockwise`는 하나의 삼각형이 FRONT인지 BACK facing인지 결정**한다. `TRUE`라면, front-facing으로 간주하여 각 정점들은 render target에게 counter-clockwise라면 정면으로 간주하고, `FALSE`면, clockwise를 정면으로 간주한다.   
 
 ### 5.3. CreateRasterizerState()
 **Rasterizer Stage의 동작 방식을 알려주는 Rasterizer State Object를 생성**한다.   
@@ -290,46 +290,46 @@ CullMode는 `NONE`, `FRONT`, `BACK` options가 존재하는데, **모든 삼각�
 
 ## 6. Creating Depth And Stencil Buffer
 ```cpp
-	// Create Depth Buffer & Stencil Buffer
-	D3D11_TEXTURE2D_DESC depthStencilBufferDesc;
-	depthStencilBufferDesc.Width = SCREEN_WIDTH;
-	depthStencilBufferDesc.Height = SCREEN_HEIGHT;
-	depthStencilBufferDesc.MipLevels = 1;
-	depthStencilBufferDesc.ArraySize = 1;
-	// Depth: unsigned normalized int 24bit, Stencil: unsigned int 8bit
-	depthStencilBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;	
-	if ( numQualityLevels > 0 ) {
-		depthStencilBufferDesc.SampleDesc.Count = 4;
-		depthStencilBufferDesc.SampleDesc.Quality = numQualityLevels - 1;
-	}
-	else {
-		depthStencilBufferDesc.SampleDesc.Count = 1;
-		depthStencilBufferDesc.SampleDesc.Quality = 0;
-	}
-	depthStencilBufferDesc.Usage = D3D11_USAGE_DEFAULT;		// texture memory를 어떻게 사용할 것인가?
-	depthStencilBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-	depthStencilBufferDesc.CPUAccessFlags = 0;
-	depthStencilBufferDesc.MiscFlags = 0;
+// Create Depth Buffer & Stencil Buffer
+D3D11_TEXTURE2D_DESC depthStencilBufferDesc;
+depthStencilBufferDesc.Width = SCREEN_WIDTH;
+depthStencilBufferDesc.Height = SCREEN_HEIGHT;
+depthStencilBufferDesc.MipLevels = 1;
+depthStencilBufferDesc.ArraySize = 1;
+// Depth: unsigned normalized int 24bit, Stencil: unsigned int 8bit
+depthStencilBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;	
+if ( numQualityLevels > 0 ) {
+	depthStencilBufferDesc.SampleDesc.Count = 4;
+	depthStencilBufferDesc.SampleDesc.Quality = numQualityLevels - 1;
+}
+else {
+	depthStencilBufferDesc.SampleDesc.Count = 1;
+	depthStencilBufferDesc.SampleDesc.Quality = 0;
+}
+depthStencilBufferDesc.Usage = D3D11_USAGE_DEFAULT; // texture memory를 어떻게 사용할 것인가?
+depthStencilBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+depthStencilBufferDesc.CPUAccessFlags = 0;
+depthStencilBufferDesc.MiscFlags = 0;
 
-	if ( FAILED ( g_device->CreateTexture2D ( &depthStencilBufferDesc , 0 , &g_depthStencilBuffer ) ) ) {
-		std::cout << "CreateTexture2D() failed" << std::endl;
-	}
-	// DepthStencilView를 이용해서 DepthStencilBuffer를 사용한다.
-	if ( FAILED ( g_device->CreateDepthStencilView ( g_depthStencilBuffer , 0 , &g_depthStencilView ) ) ) {
-		std::cout << "CreateDepthStencilView() failed" << std::endl;
-	}
+if ( FAILED ( g_device->CreateTexture2D ( &depthStencilBufferDesc , 0 , &g_depthStencilBuffer ) ) ) {
+	std::cout << "CreateTexture2D() failed" << std::endl;
+}
+// DepthStencilView를 이용해서 DepthStencilBuffer를 사용한다.
+if ( FAILED ( g_device->CreateDepthStencilView ( g_depthStencilBuffer , 0 , &g_depthStencilView ) ) ) {
+	std::cout << "CreateDepthStencilView() failed" << std::endl;
+}
 
-	// DepthStencilView를 어떤 상태로 사용하나?
-	D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
-	ZeroMemory ( &depthStencilDesc , sizeof ( D3D11_DEPTH_STENCIL_DESC ) );
-	depthStencilDesc.DepthEnable = true;
-	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK::D3D11_DEPTH_WRITE_MASK_ALL;
-	depthStencilDesc.DepthFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_LESS_EQUAL;	// depth 값이 더 작거나 같으면 화면에 그린다.
-	if ( FAILED ( g_device->CreateDepthStencilState ( &depthStencilDesc , &g_depthStencilState ) ) ) {
-		std::cout << "CreateDepthStencilState() failed" << std::endl;
-	}
+// DepthStencilView를 어떤 상태로 사용하나?
+D3D11_DEPTH_STENCIL_DESC depthStencilDesc;
+ZeroMemory ( &depthStencilDesc , sizeof ( D3D11_DEPTH_STENCIL_DESC ) );
+depthStencilDesc.DepthEnable = true;
+depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK::D3D11_DEPTH_WRITE_MASK_ALL;
+depthStencilDesc.DepthFunc = D3D11_COMPARISON_FUNC::D3D11_COMPARISON_LESS_EQUAL;	// depth 값이 더 작거나 같으면 화면에 그린다.
+if ( FAILED ( g_device->CreateDepthStencilState ( &depthStencilDesc , &g_depthStencilState ) ) ) {
+	std::cout << "CreateDepthStencilState() failed" << std::endl;
+}
 
-	return true;
+return true;
 }
 ```
 DepthStencilBuffer는 pipeline의 Output-Merger Stage에 해당한다.   
@@ -384,7 +384,7 @@ else {
 	depthStencilBufferDesc.SampleDesc.Count = 1;
 	depthStencilBufferDesc.SampleDesc.Quality = 0;
 }
-depthStencilBufferDesc.Usage = D3D11_USAGE_DEFAULT;		// texture memory를 어떻게 사용할 것인가?
+depthStencilBufferDesc.Usage = D3D11_USAGE_DEFAULT; // texture memory를 어떻게 사용할 것인가?
 depthStencilBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 depthStencilBufferDesc.CPUAccessFlags = 0;
 depthStencilBufferDesc.MiscFlags = 0;
