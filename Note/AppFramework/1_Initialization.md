@@ -420,7 +420,22 @@ void AppBase::CreateIndexBuffer ( const vector<uint16_t>& indices , ComPtr<ID3D1
 
 ### 3.5. CreateConstantBuffer()
 **model, view, projection에 적용하는 변환( Matrix )에 대한 정보를 담는 constant buffer를 생성**한다. 해당 buffer를 이용하여 shader에서 각 vertex에 matrix를 곱하여 변환을 적용한다.   
+각 vertex에 matrix를 곱하는 것은 vertex shader( .hlsl )에서 정의했다.   
+```hlsl
+PixelShaderInput main(VertexShaderInput input)
+{
+    PixelShaderInput output;
+    float4 pos = float4(input.pos, 1.0f);
+    pos = mul(pos, model);
+    pos = mul(pos, view);
+    pos = mul(pos, projection);
 
+    output.pos = pos;
+    output.color = input.color;
+
+    return output;
+}
+```
 일반적으로 constant buffer에 넣을 데이터를 struct로 정의한다.   
 ```cpp
 template <typename T_CONSTANT>
@@ -455,6 +470,16 @@ struct ModelViewProjectionConstantBuffer {
 ```
 위 코드는 `Cube.h`에 정의한 constant buffer 데이터 구조체다.   
 model, view, projection에 적용할 변환( Matrix )을 관리한다.   
+```hlsl
+cbuffer ModelViewProjectionConstantBuffer : register(b0)
+{
+    matrix model;
+    matrix view;
+    matrix projection;
+};
+
+```
+이러한 struct는 vertex shader의 struct와 동일하게 관리한다.   
 
 ### 3.6. UpdateBuffer()
 **constant buffer data를 CPU에서 GPU로 복사하는 역할을 수행**한다.   
