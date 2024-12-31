@@ -419,7 +419,9 @@ void AppBase::CreateIndexBuffer ( const vector<uint16_t>& indices , ComPtr<ID3D1
 ```
 
 ### 3.5. CreateConstantBuffer()
-model에 적용하는 변환( Matrix )에 대한 정보를 담는 buffer를 생성한다.   
+**model, view, projection에 적용하는 변환( Matrix )에 대한 정보를 담는 constant buffer를 생성**한다. 해당 buffer를 이용하여 shader에서 각 vertex에 matrix를 곱하여 변환을 적용한다.   
+
+일반적으로 constant buffer에 넣을 데이터를 struct로 정의한다.   
 ```cpp
 template <typename T_CONSTANT>
 void CreateConstantBuffer ( const T_CONSTANT& constantBufferData , ComPtr<ID3D11Buffer>& constantBuffer ) {
