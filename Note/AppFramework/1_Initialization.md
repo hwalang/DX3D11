@@ -1,19 +1,17 @@
-- [Introduce](#introduce)
 - [Common Initialization](#common-initialization)
 	- [1. Member Variables](#1-member-variables)
-	- [2. Initialize()](#2-initialize)
+	- [2. Initialize](#2-initialize)
 		- [2.1. AppBase::Initialize()](#21-appbaseinitialize)
 		- [2.2. AppBase::InitMainWindow()](#22-appbaseinitmainwindow)
 		- [3.3. AppBase::InitDirect3D()](#33-appbaseinitdirect3d)
 		- [2.3. AppBase::InitGUI()](#23-appbaseinitgui)
-- [Rendering Apps Initialization](#rendering-apps-initialization)
-	- [1. MakeBox()](#1-makebox)
-		- [1.1. 정육면체 pixel( vertices ) 정보 세팅](#11-정육면체-pixel-vertices--정보-세팅)
-		- [1.2. 정육면체 indices 정보 세팅](#12-정육면체-indices-정보-세팅)
-		- [1.3. vertex의 index 정보를 공유하는 경우 발생하는 문제점](#13-vertex의-index-정보를-공유하는-경우-발생하는-문제점)
-
-# Introduce
-객체 지향적 설계를 위한 Initialization을 살펴본다.   
+	- [3. Creating Buffers](#3-creating-buffers)
+		- [3.1. CreateVertexBuffer()](#31-createvertexbuffer)
+		- [3.2. AppBase::CreateVertexShaderAndInputLayout()](#32-appbasecreatevertexshaderandinputlayout)
+		- [3.3. AppBase::CreatePixelShader()](#33-appbasecreatepixelshader)
+		- [3.4. AppBase::CreateIndexBuffer()](#34-appbasecreateindexbuffer)
+		- [3.5. CreateConstantBuffer()](#35-createconstantbuffer)
+		- [3.6. UpdateBuffer()](#36-updatebuffer)
 
 # Common Initialization
 **AppBase을 상속 받는 다양한 Apps는 Common Initialization을 기본으로 호출한 뒤, 각자에게 맞는 초기화를 진행**한다.   
@@ -42,7 +40,7 @@ public:
 ```
 모든 App에서 사용할 변수를 관리한다.   
 
-## 2. Initialize()
+## 2. Initialize
 ```cpp
 class AppBase {
 
@@ -330,133 +328,142 @@ bool AppBase::InitGUI () {
 ```
 [1_InitializingGUI - ImGui](/Note/ImGUI/1_InitializingGUI.md)를 참고한다.   
 
+## 3. Creating Buffers
+`AppBase`는 Vertex, Pixel, Index, Constant Buffer를 생성하는 기능을 가진다.   
+모든 자식 Apps는 Buffer를 생성하여 GPU에 정보를 전달한다.   
 
-# Rendering Apps Initialization
-`AppBase`를 상속받는 자식 App 들은 자신만의 초기화 기능을 가진다.   
-**Rendering 역할을 수행하는 자식 앱들의 초기화 구조**를 살펴본다.   
-## 1. MakeBox()
-정육면체를 나타내는 vertices와 indices를 반환하는 함수다.   
-즉, **현재 App은 정육면체를 rendering 한 화면을 띄우기 위한 객체**다.   
+Buffer를 생성하는 방식의 틀은 모두 비슷하다.   
+
+### 3.1. CreateVertexBuffer()
+template 함수이므로 header file에 구현한다.   
+각 vertex에 대해 적용하는 shaders 프로그램을 위해서 vertex buffer를 생성한다.   
 ```cpp
-struct Vertex {
-	Vector3 position;
-	Vector3 color;
-};
+template <typename T_VERTEX>
+void CreateVertexBuffer ( const vector<T_VERTEX>& vertices , ComPtr<ID3D11Buffer>& vertexBuffer ) {
+	D3D11_BUFFER_DESC bufferDesc;
+	ZeroMemory ( &bufferDesc , sizeof ( bufferDesc ) );
+	bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;	// 초기화 후 변경하지 않음
+	bufferDesc.ByteWidth = UINT ( sizeof ( T_VERTEX ) * vertices.size () );
+	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferDesc.CPUAccessFlags = 0; // 0 if no CPU access is necessary.
+	bufferDesc.StructureByteStride = sizeof ( T_VERTEX );
 
-auto MakeBox () {
-	std::vector<Vector3> positions;
-	std::vector<Vector3> colors;
-	std::vector<Vector3> normals;
+	D3D11_SUBRESOURCE_DATA vertexBufferData{ 0 }; // ZeroMemory();
+	vertexBufferData.pSysMem = vertices.data ();
+	vertexBufferData.SysMemPitch = 0;
+	vertexBufferData.SysMemSlicePitch = 0;
 
-	const float scale = 1.0f;
-
-	// 윗면
-	positions.push_back ( Vector3 ( -1.0f , 1.0f , -1.0f ) * scale );
-	positions.push_back ( Vector3 ( -1.0f , 1.0f , 1.0f ) * scale );
-	positions.push_back ( Vector3 ( 1.0f , 1.0f , 1.0f ) * scale );
-	positions.push_back ( Vector3 ( 1.0f , 1.0f , -1.0f ) * scale );
-	colors.push_back ( Vector3 ( 1.0f , 0.0f , 0.0f ) );
-	colors.push_back ( Vector3 ( 1.0f , 0.0f , 0.0f ) );
-	colors.push_back ( Vector3 ( 1.0f , 0.0f , 0.0f ) );
-	colors.push_back ( Vector3 ( 1.0f , 0.0f , 0.0f ) );
-	normals.push_back ( Vector3 ( 0.0f , 1.0f , 0.0f ) );
-	normals.push_back ( Vector3 ( 0.0f , 1.0f , 0.0f ) );
-	normals.push_back ( Vector3 ( 0.0f , 1.0f , 0.0f ) );
-	normals.push_back ( Vector3 ( 0.0f , 1.0f , 0.0f ) );
-
-	std::vector<Vertex> vertices;
-	for ( size_t i = 0; i < positions.size (); ++i ) {
-		Vertex v;
-		v.position = positions[ i ];
-		v.color = colors[ i ];
-		vertices.push_back ( v );
+	const HRESULT hr = m_device->CreateBuffer ( &bufferDesc , &vertexBufferData , vertexBuffer.GetAddressOf () );
+	if ( FAILED ( hr ) ) {
+		std::cout << "CreateVertexBuffer() - CreateBuffer() failed" << std::hex << hr << std::endl;
 	}
-
-	std::vector<uint16_t> indices = {
-		0, 1, 2, 0, 2, 3,		// 윗면
-	};
-
-	return tuple{ vertices, indices };
 }
 ```
-정육면체를 생성하려면 vertice와 indice 정보가 필요하다.   
-**vertices에는 각 정점의 position과 color가 저장**되며, **indices에는 각 정점의 순서를 통해 삼각형을 그리는 방법을 저장**한다.   
+Vertex shader에 대한 내용은 [Using Shader](/Note/DirectXFramework/4_DrawingTriangle.md/#1-using-shaders)에서 설명한다.   
 
-### 1.1. 정육면체 pixel( vertices ) 정보 세팅
-positions는 정점의 위치를, colors는 정점의 색깔을, normals는 정점의 normal vector를 저장한다.   
-
-**positions는 각 면의 네 개의 꼭짓점을 표현**한다. **이 점들은 실제 화면 좌표가 아니라 정육면체를 modeling하는 model space( 모델 좌표 )다**. 이후, world space, view space, projection space로 변환되어 screen에 rendering 된다.   
-colors는 각 정점마다 색상을 지정한다. 윗면을 예로 들면, 모든 정점이 `(1.0, 0.0, 0.0)` 즉, red를 할당했다.   
-normals는 각 면이 어느 방향을 바라보고 있는지를 나타낸다. 윗면은 `(0, 1, 0)`인 y축 방향으로 설정했다.   
-
+### 3.2. AppBase::CreateVertexShaderAndInputLayout()
+Vertex Shader를 compile하여 생성하고, Input Layout
 ```cpp
-// 윗면
-positions.push_back(Vector3(-1.0f, 1.0f, -1.0f) * scale);
-positions.push_back(Vector3(-1.0f, 1.0f, 1.0f) * scale);
-positions.push_back(Vector3(1.0f, 1.0f, 1.0f) * scale);
-positions.push_back(Vector3(1.0f, 1.0f, -1.0f) * scale);
-colors.push_back(Vector3(1.0f, 0.0f, 0.0f));
-colors.push_back(Vector3(1.0f, 0.0f, 0.0f));
-colors.push_back(Vector3(1.0f, 0.0f, 0.0f));
-colors.push_back(Vector3(1.0f, 0.0f, 0.0f));
-normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
-normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
-normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
-normals.push_back(Vector3(0.0f, 1.0f, 0.0f));
+void AppBase::CreateVertexShaderAndInputLayout (
+	const wstring& filename , const vector<D3D11_INPUT_ELEMENT_DESC>& inputElements ,
+	ComPtr<ID3D11VertexShader>& vertexShader , ComPtr<ID3D11InputLayout>& inputLayout
+) {
+	ComPtr<ID3DBlob> shaderBlob;
+	ComPtr<ID3DBlob> errorBlob;
 
-// 아랫면
-positions.push_back(Vector3(-1.0f, 0.0f, -1.0f) * scale);
-positions.push_back(Vector3(-1.0f, 0.0f, 1.0f) * scale);
-positions.push_back(Vector3(1.0f, 0.0f, 1.0f) * scale);
-positions.push_back(Vector3(1.0f, 0.0f, -1.0f) * scale);
-colors.push_back(Vector3(0.0f, 1.0f, 0.0f));
-colors.push_back(Vector3(0.0f, 1.0f, 0.0f));
-colors.push_back(Vector3(0.0f, 1.0f, 0.0f));
-colors.push_back(Vector3(0.0f, 1.0f, 0.0f));
-normals.push_back(Vector3(0.0f, -1.0f, 0.0f));
-normals.push_back(Vector3(0.0f, -1.0f, 0.0f));
-normals.push_back(Vector3(0.0f, -1.0f, 0.0f));
-normals.push_back(Vector3(0.0f, -1.0f, 0.0f));
+	HRESULT hr = D3DCompileFromFile ( filename.c_str () , 0 , 0 , "main" , "vs_5_0" , 0 , 0 , &shaderBlob , &errorBlob );
+	CheckResult ( hr , errorBlob.Get () );
+	m_device->CreateVertexShader ( shaderBlob->GetBufferPointer () , shaderBlob->GetBufferSize () , NULL , &vertexShader );
+	m_device->CreateInputLayout ( inputElements.data () , UINT ( inputElements.size () ) ,
+		shaderBlob->GetBufferPointer () , shaderBlob->GetBufferSize () , &inputLayout );
+}
 ```
-<div>
-  <img src="Images/Initialization/DrawVerticeIndice.jpg" width="45%" />
-</div>
+`ID3DBlob`은 buffer를 의미하며, 3가지 용도( Data buffers, Mesh optimization and loading, Object code and error messages )로 사용한다.   
+여기서는 vertex, pixel shaders를 컴파일할 때 발생하는 error message 또는 object code를 반환한다.   
 
-종이로 직접 그리면 정점 정보들을 쉽게 알 수 있다.   
+`D3DCompileFromFile()`는 [shader 파일을 컴파일하는 방법](/Note/DirectXFramework/4_DrawingTriangle.md/#1-load-and-compile-the-two-shaders-from-the-shader-file-hlsl-)에서 자세히 설명한다.   
+`InputLayout`과 활용 방법은 [Input Layout?](/Note/DirectXFramework/4_DrawingTriangle.md/#2-vertex-buffer)에서 자세히 설명한다.   
+Vertex Shader와 Input Layout은 관련이 있다 정도만 참고한다.   
 
-### 1.2. 정육면체 indices 정보 세팅
-**graphics pipeline에서 primitives를 triangle로 사용하기 때문에, 하나의 사각형을 두 개의 삼각형으로 나누어 표현**한다.   
-
-예를 들면, 윗면을 rendering 하려면 두 개의 삼각형을 이루는 정점의 index를 담는다. `(0, 1, 2)`와 `(0, 2, 3)`으로 두 개의 삼각형을 정의했다.   
-rasterizer state에서 `FrontCounterClockWise`를 `FALSE`로 설정하여 삼각형의 앞면을 판단했다.   
-정점들이 clock-wise 방향으로 나열된다면, 앞면으로 간주한다.   
-
-
-
-### 1.3. vertex의 index 정보를 공유하는 경우 발생하는 문제점
+### 3.3. AppBase::CreatePixelShader()
+화면의 pixel에 대한 color를 계산하는 shaders를 생성한다.   
 ```cpp
-vector<uint16_t> indices = {
-    0,  1,  2,  0,  2,  3,  // 윗면
-    4, 5, 6, 4, 6, 7, // 아랫면
-    0, 3, 7, 0, 7, 4, // 앞면
-    1, 2, 6, 1, 6, 5, // 뒷면
+void AppBase::CreatePixelShader ( const wstring& filename , ComPtr<ID3D11PixelShader>& pixelShader ) {
+	ComPtr<ID3DBlob> shaderBlob;
+	ComPtr<ID3DBlob> errorBlob;
+
+	HRESULT hr = D3DCompileFromFile ( filename.c_str () , 0 , 0 , "main" , "ps_5_0" , 0 , 0 , &shaderBlob , &errorBlob );
+	CheckResult ( hr , errorBlob.Get () );
+	m_device->CreatePixelShader ( shaderBlob->GetBufferPointer () , shaderBlob->GetBufferSize () , NULL , &pixelShader );
+}
+```
+pixel shader에 대한 내용은 [Using Shader](/Note/DirectXFramework/4_DrawingTriangle.md/#1-using-shaders)에서 설명한다.   
+
+### 3.4. AppBase::CreateIndexBuffer()
+```cpp
+void AppBase::CreateIndexBuffer ( const vector<uint16_t>& indices , ComPtr<ID3D11Buffer>& m_indexBuffer ) {
+	D3D11_BUFFER_DESC bufferDesc{};
+	bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	bufferDesc.ByteWidth = UINT ( sizeof ( uint16_t ) * indices.size () );
+	bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	bufferDesc.CPUAccessFlags = 0;
+	bufferDesc.StructureByteStride = sizeof ( uint16_t );
+
+	D3D11_SUBRESOURCE_DATA indexBufferData { 0 };
+	indexBufferData.pSysMem = indices.data ();
+	indexBufferData.SysMemPitch = 0;
+	indexBufferData.SysMemSlicePitch = 0;
+
+	m_device->CreateBuffer ( &bufferDesc , &indexBufferData , m_indexBuffer.GetAddressOf () );
+}
+```
+
+### 3.5. CreateConstantBuffer()
+model에 적용하는 변환( Matrix )에 대한 정보를 담는 buffer를 생성한다.   
+```cpp
+template <typename T_CONSTANT>
+void CreateConstantBuffer ( const T_CONSTANT& constantBufferData , ComPtr<ID3D11Buffer>& constantBuffer ) {
+	D3D11_BUFFER_DESC cbDesc;
+	cbDesc.ByteWidth = sizeof ( constantBufferData );
+	cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+	cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	cbDesc.MiscFlags = 0;
+	cbDesc.StructureByteStride = 0;
+
+	D3D11_SUBRESOURCE_DATA initData;
+	initData.pSysMem = &constantBufferData;
+	initData.SysMemPitch = 0;
+	initData.SysMemSlicePitch = 0;
+
+	const HRESULT hr = m_device->CreateBuffer ( &cbDesc , &initData , constantBuffer.GetAddressOf () );
+	if ( FAILED ( hr ) ) {
+		std::cout << "CreateConstantBuffer() - CreateBuffer() failed" << std::hex << hr << std::endl;
+	}
+}
+```
+`T_CONSTANT`는 각 자식 Apps에서 관리하는 constant buffer에 넘기는 구조체를 의미한다.   
+```cpp
+// ConstantBuffer로 보낼 데이터
+struct ModelViewProjectionConstantBuffer {
+	Matrix model;
+	Matrix view;
+	Matrix projection;
 };
 ```
-vertex의 index 정보를 공유하면 중복되는 정점을 줄여서 메모리 효율을 높일 수 있다.   
+위 코드는 `Cube.h`에 정의한 constant buffer 데이터 구조체다.   
+model, view, projection에 적용할 변환( Matrix )을 관리한다.   
 
-![alt text](Images/Initialization/SharedVertices.png)   
-
-하지만 indices에서 정점들을 공유하고 있기 때문에, 윗면과 아랫면의 정점들에 대한 색상 정보가 저장된 후, 다른 면들의 색상 정보는 적용되지 않고 보간( interpolation )을 통해 표현된다.   
-즉, **정점 index를 재사용함으로써 색상이 겹치는 문제가 발생**한다.   
-
-![alt text](Images/Initialization/SeparateVertices.png)   
-
+### 3.6. UpdateBuffer()
+**constant buffer data를 CPU에서 GPU로 복사하는 역할을 수행**한다.   
 ```cpp
-vector<uint16_t> indices = {
-    0,  1,  2,  0,  2,  3,  // 윗면
-    4, 5, 6, 4, 6, 7, // 아랫면
-    8, 9, 10, 8, 10, 11, // 앞면
-    12, 13, 14, 12, 14, 15, // 뒷면
-};
+template <typename T_DATA>
+void UpdateBuffer ( const T_DATA& bufferData , ComPtr<ID3D11Buffer>& buffer ) {
+	D3D11_MAPPED_SUBRESOURCE ms;
+	m_devcon->Map ( buffer.Get () , NULL , D3D11_MAP_WRITE_DISCARD , NULL , &ms );
+	memcpy ( ms.pData , &bufferData , sizeof ( bufferData ) );
+	m_devcon->Unmap ( buffer.Get () , NULL );
+}
 ```
-각 면을 다른 색상으로 지정하려면, **각 면마다 정점을 별도로 지정하여 정점 공유를 피해야 한다**.   
+[Filling the vertex buffer](/Note/DirectXFramework/4_DrawingTriangle.md/#3-filling-the-vertex-buffer)에서 `Map`과 `UnMap`에 대한 설명이 존재한다.   
+자식 Apps에서 매 프레임마다 변환( 애니메이션 )을 적용하는 `Update()`에서 이를 마지막에 호출한다.   
