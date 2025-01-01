@@ -351,7 +351,12 @@ namespace pt {
 		ComPtr<ID3DBlob> shaderBlob;
 		ComPtr<ID3DBlob> errorBlob;
 
-		HRESULT hr = D3DCompileFromFile ( filename.c_str () , 0 , 0 , "main" , "vs_5_0" , 0 , 0 , &shaderBlob , &errorBlob );
+		UINT compileFlags = 0;
+#if defined(DEBUG) || defined(_DEBUG)
+		compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
+
+		HRESULT hr = D3DCompileFromFile ( filename.c_str () , 0 , 0 , "main" , "vs_5_0" , compileFlags , 0 , &shaderBlob , &errorBlob );
 		CheckResult ( hr , errorBlob.Get () );
 		m_device->CreateVertexShader ( shaderBlob->GetBufferPointer () , shaderBlob->GetBufferSize () , NULL , &vertexShader );
 		m_device->CreateInputLayout ( inputElements.data () , UINT ( inputElements.size () ) ,
@@ -362,7 +367,12 @@ namespace pt {
 		ComPtr<ID3DBlob> shaderBlob;
 		ComPtr<ID3DBlob> errorBlob;
 
-		HRESULT hr = D3DCompileFromFile ( filename.c_str () , 0 , 0 , "main" , "ps_5_0" , 0 , 0 , &shaderBlob , &errorBlob );
+		UINT compileFlags = 0;
+#if defined(DEBUG) || defined(_DEBUG)
+		compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
+
+		HRESULT hr = D3DCompileFromFile ( filename.c_str () , 0 , 0 , "main" , "ps_5_0" , compileFlags , 0 , &shaderBlob , &errorBlob );
 		CheckResult ( hr , errorBlob.Get () );
 		m_device->CreatePixelShader ( shaderBlob->GetBufferPointer () , shaderBlob->GetBufferSize () , NULL , &pixelShader );
 	}
