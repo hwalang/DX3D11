@@ -63,6 +63,12 @@ shaders를 load 하기 위해선 3단계를 거친다.
 먼저, **rendering에 필요한 vertex shader와 pixel shader를 compile 한다**.   
 하나의 shader를 load 하고 compile 하기 위해서 `D3DCompileFromFile()` 함수를 사용한다.   
 [D3DCompileFromFile Function - MS Learn](https://learn.microsoft.com/en-us/windows/win32/api/d3dcompiler/nf-d3dcompiler-d3dcompilefromfile)   
+
+```cpp
+D3DCompileFromFile(filename.c_str(), 0, 0, "main", "vs_5_0", 0, 0, &shaderBlob, &errorBlob);
+```
+`D3DCompileFromFile()`를 호출하면, 전달된 hlsl source file을 compile해서 bytecode 형태의 shader program이 `shaderBlob`에 저장된다. 즉, **memory에 compile된 shader를 담은 `shaderBlob`을 반환**한다.   
+
 ```cpp
 #include <d3dcompiler.h>
 
@@ -81,13 +87,6 @@ HRESULT D3DCompileFromFile(
 이 함수는 **HLSL( High Level Shader Language ) code를 compile** 한다.   
 
 `pFileName`은 컴파일할 HLSL shader code가 포함된 파일의 경로를 지정하는 `LPCWSTR`이다.   
-```cpp
-func1 (const wstring &filename) {
-  D3DCompileFromFile(filename.c_str(), ... );   // L"filename.hlsl"
-}
-```
-![alt text](Images/DrawingTriangle/ShaderFileName.png)   
-이러한 shader file은 project 내부에 존재한다. 
 
 **`pEntryPoint`는 shader entry point function의 이름을 저장**한다. **해당 함수에서 shader execution이 시작**한다.   
 여기서는 `VShader`와 `PShader`다. 일반적으로 `"main"` 함수가 사용되지만, 다른 이름을 사용할 수도 있다.   
