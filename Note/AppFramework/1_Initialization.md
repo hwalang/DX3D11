@@ -10,7 +10,7 @@
 		- [3.2. AppBase::CreateVertexShaderAndInputLayout()](#32-appbasecreatevertexshaderandinputlayout)
 		- [3.3. AppBase::CreatePixelShader()](#33-appbasecreatepixelshader)
 		- [3.4. AppBase::CreateIndexBuffer()](#34-appbasecreateindexbuffer)
-		- [3.5. CreateConstantBuffer()](#35-createconstantbuffer)
+		- [3.5. ConstantBuffer? and CreateConstantBuffer()](#35-constantbuffer-and-createconstantbuffer)
 		- [3.6. UpdateBuffer()](#36-updatebuffer)
 
 # Common Initialization
@@ -418,9 +418,13 @@ void AppBase::CreateIndexBuffer ( const vector<uint16_t>& indices , ComPtr<ID3D1
 }
 ```
 
-### 3.5. CreateConstantBuffer()
+### 3.5. ConstantBuffer? and CreateConstantBuffer()
 **model, view, projection에 적용하는 변환( Matrix )에 대한 정보를 담는 constant buffer를 생성**한다. 해당 buffer를 이용하여 shader에서 각 vertex에 matrix를 곱하여 변환을 적용한다.   
 각 vertex에 matrix를 곱하는 것은 vertex shader( .hlsl )에서 정의했다.   
+
+constant buffer는 여러 shader가 같이 사용할 수 있다.   
+**최적화를 하기 위해서 Update( 갱신 ) 주기에 따라 constant buffer를 나눈다**.   
+예를 들면, 매 프레임마다 반드시 한 번식 update하는 buffer와 event가 발생했을 때만 update하는 buffer를 분리하는 것이, CPU to GPU 전송량을 줄일 수 있다.   
 ```hlsl
 PixelShaderInput main(VertexShaderInput input)
 {
@@ -437,6 +441,18 @@ PixelShaderInput main(VertexShaderInput input)
 }
 ```
 일반적으로 constant buffer에 넣을 데이터를 struct로 정의한다.   
+
+```CPP
+// ChildApp.h
+static_assert(
+  (sizeof(ModelViewProjectionConstantBuffer) % 16) == 0,
+  "Constant Buffer size must be 16-byte aligned"
+);
+```
+[constant buffer의 멤버 변수의 묶음이 16-bytes인 이유](https://learn.microsoft.com/en-us/windows/win32/api/d3d11/nf-d3d11-id3d11device-createbuffer#remarks)   
+**ConstantBuffer로 보낼 struct의 멤버 변수들은 16-bytes 단위로 중간에 짤리지 않도록 배치**한다.   
+`D3D11_BUFFER_DESC`의 `BindFlags`가 `D3D11_BIND_CONSTANT_BUFFER`라면, 그 buffer는 constant buffer다. 이러한 `D3D11_BUFFER_DESC`의 `ByteWidth`는 16의 배수거나, `D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT`보다 작거나 같아야 한다.   
+
 ```cpp
 template <typename T_CONSTANT>
 void CreateConstantBuffer ( const T_CONSTANT& constantBufferData , ComPtr<ID3D11Buffer>& constantBuffer ) {
