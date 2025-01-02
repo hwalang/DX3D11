@@ -7,6 +7,10 @@
 - [precompiled header 방식에서 unexpected end of file error](#precompiled-header-방식에서-unexpected-end-of-file-error)
 	- [1. pch.h 포함](#1-pchh-포함)
 	- [2. 개별적인 파일에 precompiled header 끄기](#2-개별적인-파일에-precompiled-header-끄기)
+- [.hlsl의 Encoding Error](#hlsl의-encoding-error)
+	- [1. BOM( Byte Order Mark ) ?](#1-bom-byte-order-mark--)
+	- [2. 왜 문제가 되나?](#2-왜-문제가-되나)
+	- [3. Solution](#3-solution)
 
 <br>
 
@@ -109,3 +113,23 @@ header file에서 `#include "pch.h"`를 포함하고 있더라도, **.cpp에서�
 ```
 만약 일부 .cpp 파일에서 precompiled header가 필요 없을 수 있기 때문에, 해당 source file만 개별적으로 해당 옵션을 꺼준다.   
 그러면 **`#include "pch.h"`를 포함하지 않아도 에러가 발생하지 않는다**.   
+
+# .hlsl의 Encoding Error
+```
+???.hlsl(1,1): error X3000: Illegal character in shader file
+```
+visual studio 2022에서 HLSL 파일을 컴파일 할 때 발생하며, 파일의 첫 번째 줄 첫 번째 문자에 컴파일러가 인식할 수 없는 잘못된 문자가 포함되어 있음을 알려준다.   
+이는 **Encoding 방식과 BOM( Byte Order Mark )와 관련**이 있다.   
+
+## 1. BOM( Byte Order Mark ) ?
+**BOM은 파일 시작 부분에 위치하는 특수한 문자로서, 파일의 Encoding 방식을 명시하는 역할**이다.   
+![alt text](Images/ProblemSolving/VS_UTF8EncodingBOM.png)   
+visual studio에서 signature는 BOM을 의미하며, UTF-8 파일을 저장할 때 BOM을 포함할지 여부를 선택할 수 있다.   
+이러한 UTF-8 파일은 기본적으로 byte 순서에 의존하지 않는 Encoding 방식이므로 BOM이 필수가 아니다.   
+
+## 2. 왜 문제가 되나?
+HLSL 파일을 컴파일 할 때, compiler는 파일의 시작 부분에서 예상치 못한 문자를 만날 수 있다.   
+**BOM은 Encoding을 나타내는 특수 문자이므로, HLSL compiler는 이를 Illegal character( HLSL 구문이 아님 )로 인식**한다.   
+
+## 3. Solution
+**파일 Encoding을 변경할 때, signature( BOM ) 없이 UTF-8로 저장**한다.   
