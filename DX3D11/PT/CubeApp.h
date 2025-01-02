@@ -1,33 +1,11 @@
 #pragma once
 
 #include <algorithm>
-#include <directxtk/SimpleMath.h>
-#include <iostream>
 #include <memory>
-#include <vector>
 
 #include "AppBase.h"
 
 namespace pt {
-
-using DirectX::SimpleMath::Matrix;
-using DirectX::SimpleMath::Vector3;
-
-struct Vertex {
-	Vector3 position;
-	Vector3 color;
-};
-
-// ConstantBuffer로 보낼 데이터
-struct ModelViewProjectionConstantBuffer {
-	Matrix model;
-	Matrix view;
-	Matrix projection;
-};
-
-// constant buffer
-static_assert( ( sizeof ( ModelViewProjectionConstantBuffer ) % 16 ) == 0 ,
-	"Constant Buffer size must be 16-byte aligend" );
 
 class CubeApp : public AppBase {
 public:
