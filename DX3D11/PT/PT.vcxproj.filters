@@ -24,6 +24,9 @@
     <ClInclude Include="CubeApp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SquareApp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -38,9 +41,14 @@
     <ClCompile Include="CubeApp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SquareApp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="ColorVertexShader.hlsl" />
-    <FxCompile Include="ColorPixelShader.hlsl" />
+    <FxCompile Include="CubeVertexShader.hlsl" />
+    <FxCompile Include="CubePixelShader.hlsl" />
+    <FxCompile Include="SquarePixelShader.hlsl" />
+    <FxCompile Include="SquareVertexShader.hlsl" />
   </ItemGroup>
 </Project>
