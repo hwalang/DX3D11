@@ -1,7 +1,7 @@
 - [Introduce](#introduce)
 - [Code](#code)
-  - [AppBase.h](#appbaseh)
-  - [AppBase.cpp](#appbasecpp)
+	- [AppBase.h](#appbaseh)
+	- [AppBase.cpp](#appbasecpp)
 
 # Introduce
 모든 App이 공통으로 사용하는 기능과 변수를 관리하는 최상위 부모 클래스   
@@ -18,13 +18,32 @@
 #include <iostream>
 #include <vector>
 #include <windows.h>
-#include <wrl.h> // ComPtr
+#include <wrl.h>
+#include <directxtk/SimpleMath.h>
 
 namespace pt {
 
+using DirectX::SimpleMath::Matrix;
+using DirectX::SimpleMath::Vector3;
+using DirectX::SimpleMath::Vector2;
 using Microsoft::WRL::ComPtr;
 using std::vector;
 using std::wstring;
+
+struct Vertex {
+	Vector3 position;
+	Vector3 color;
+	Vector2 texcoord;
+};
+
+struct ModelViewProjectionConstantBuffer {
+	Matrix model;
+	Matrix view;
+	Matrix projection;
+};
+
+static_assert( ( sizeof ( ModelViewProjectionConstantBuffer ) % 16 == 0 ) ,
+	"[MVP] Constant Buffer size must be 16-bytes aligend" );
 
 class AppBase {
 public:
