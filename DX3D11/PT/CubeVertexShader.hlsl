@@ -1,4 +1,4 @@
-cbuffer ModelViewProjectionConstantBuffer : register(b0)
+﻿cbuffer ModelViewProjectionConstantBuffer : register(b0)
 {
     matrix model;
     matrix view;
