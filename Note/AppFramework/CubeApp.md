@@ -14,10 +14,12 @@
 - [Code](#code)
   - [CubeApp.h](#cubeapph)
   - [CubeApp.cpp](#cubeappcpp)
+  - [CubeVertexShader.hlsl](#cubevertexshaderhlsl)
+  - [CubePixelShader.hlsl](#cubepixelshaderhlsl)
 
 # Introduce
 Cube를 rendering한 window 창을 띄우는 App.   
-`Cube.h`와 `Cube.cpp`로 만든다.   
+Cube에 
 
 # CubeApp::Initialize()
 ```cpp
@@ -299,29 +301,11 @@ void CubeApp::Render () {
 #pragma once
 
 #include <algorithm>
-#include <directxtk/SimpleMath.h>
-#include <iostream>
 #include <memory>
-#include <vector>
 
 #include "AppBase.h"
 
 namespace pt {
-
-using DirectX::SimpleMath::Matrix;
-using DirectX::SimpleMath::Vector3;
-
-struct Vertex {
-	Vector3 position;
-	Vector3 color;
-};
-
-// ConstantBuffer로 보낼 데이터
-struct ModelViewProjectionConstantBuffer {
-	Matrix model;
-	Matrix view;
-	Matrix projection;
-};
 
 class CubeApp : public AppBase {
 public:
@@ -494,8 +478,8 @@ bool CubeApp::Initialize () {
     {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
     {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 4 * 3, D3D11_INPUT_PER_VERTEX_DATA, 0},
   };
-  AppBase::CreateVertexShaderAndInputLayout ( L"ColorVertexShader.hlsl" , inputElements , m_colorVertexShader , m_colorInputLayout );
-  AppBase::CreatePixelShader ( L"ColorPixelShader.hlsl" , m_colorPixelShader );
+  AppBase::CreateVertexShaderAndInputLayout ( L"CubeVertexShader.hlsl" , inputElements , m_colorVertexShader , m_colorInputLayout );
+  AppBase::CreatePixelShader ( L"CubePixelShader.hlsl" , m_colorPixelShader );
 
   return true;
 }
@@ -576,4 +560,53 @@ void CubeApp::Render ()
 }
 
 }	// namespace pt
+```
+## CubeVertexShader.hlsl
+```cpp
+cbuffer ModelViewProjectionConstantBuffer : register(b0)
+{
+    matrix model;
+    matrix view;
+    matrix projection;
+};
+
+struct VertexShaderInput
+{
+    float3 pos : POSITION;
+    float3 color : COLOR0;
+};
+
+struct PixelShaderInput
+{
+    float4 pos : SV_POSITION;
+    float3 color : COLOR;
+};
+
+PixelShaderInput main(VertexShaderInput input)
+{
+    PixelShaderInput output;
+    float4 pos = float4(input.pos, 1.0f);
+    pos = mul(pos, model);
+    pos = mul(pos, view);
+    pos = mul(pos, projection);
+
+    output.pos = pos;
+    output.color = input.color;
+
+    return output;
+}
+```
+
+## CubePixelShader.hlsl
+```cpp
+struct PixelShaderInput {
+    float4 pos : SV_POSITION;
+    float3 color : COLOR;
+};
+
+float4 main(PixelShaderInput input) : SV_TARGET {
+
+    // Use the interpolated vertex color
+    return float4(input.color, 1.0f);
+}
 ```
