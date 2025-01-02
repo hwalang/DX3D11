@@ -141,6 +141,7 @@ bool CubeApp::Initialize () {
   vector<D3D11_INPUT_ELEMENT_DESC> inputElements = {
     {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
     {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 4 * 3, D3D11_INPUT_PER_VERTEX_DATA, 0},
+    {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 4 * 3 + 4 * 3, D3D11_INPUT_PER_VERTEX_DATA, 0},
   };
   AppBase::CreateVertexShaderAndInputLayout ( L"CubeVertexShader.hlsl" , inputElements , m_colorVertexShader , m_colorInputLayout );
   AppBase::CreatePixelShader ( L"CubePixelShader.hlsl" , m_colorPixelShader );
