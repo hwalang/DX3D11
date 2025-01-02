@@ -8,12 +8,33 @@
 #include <vector>
 #include <windows.h>
 #include <wrl.h> // ComPtr
+#include <directxtk/SimpleMath.h>
 
 namespace pt {
 
+using DirectX::SimpleMath::Matrix;
+using DirectX::SimpleMath::Vector3;
+using DirectX::SimpleMath::Vector2;
 using Microsoft::WRL::ComPtr;
 using std::vector;
 using std::wstring;
+
+// pixel shader로 다양한 효과를 부여하려면
+// 이를 canvas처럼 활용할 수 있는 texture coordinates가 필요하다.
+struct Vertex {
+	Vector3 position;
+	Vector3 color;
+	Vector2 texcoord; // texture coordinates
+};
+
+struct ModelViewProjectionConstantBuffer {
+	Matrix model;
+	Matrix view;
+	Matrix projection;
+};
+
+static_assert( ( sizeof ( ModelViewProjectionConstantBuffer ) % 16 == 0 ) ,
+	"[MVP] Constant Buffer size must be 16-bytes aligend" );
 
 class AppBase {
 public:
