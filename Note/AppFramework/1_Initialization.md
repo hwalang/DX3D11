@@ -11,6 +11,9 @@
 		- [3.3. AppBase::CreatePixelShader()](#33-appbasecreatepixelshader)
 		- [3.4. AppBase::CreateIndexBuffer()](#34-appbasecreateindexbuffer)
 		- [3.5. ConstantBuffer? and CreateConstantBuffer()](#35-constantbuffer-and-createconstantbuffer)
+			- [3.5.1. constant buffer bytewidth](#351-constant-buffer-bytewidth)
+			- [3.5.2. shader program에서 constant buffer란](#352-shader-program에서-constant-buffer란)
+			- [3.5.3. create constant buffer](#353-create-constant-buffer)
 		- [3.6. UpdateBuffer()](#36-updatebuffer)
 
 # Common Initialization
@@ -425,6 +428,7 @@ void AppBase::CreateIndexBuffer ( const vector<uint16_t>& indices , ComPtr<ID3D1
 constant buffer는 여러 shader가 같이 사용할 수 있다.   
 **최적화를 하기 위해서 Update( 갱신 ) 주기에 따라 constant buffer를 나눈다**.   
 예를 들면, 매 프레임마다 반드시 한 번식 update하는 buffer와 event가 발생했을 때만 update하는 buffer를 분리하는 것이, CPU to GPU 전송량을 줄일 수 있다.   
+#### 3.5.1. constant buffer bytewidth
 ```hlsl
 PixelShaderInput main(VertexShaderInput input)
 {
@@ -453,6 +457,21 @@ static_assert(
 **ConstantBuffer로 보낼 struct의 멤버 변수들은 16-bytes 단위로 중간에 짤리지 않도록 배치**한다.   
 `D3D11_BUFFER_DESC`의 `BindFlags`가 `D3D11_BIND_CONSTANT_BUFFER`라면, 그 buffer는 constant buffer다. 이러한 `D3D11_BUFFER_DESC`의 `ByteWidth`는 16의 배수거나, `D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT`보다 작거나 같아야 한다.   
 
+#### 3.5.2. shader program에서 constant buffer란
+shader program에서 constant buffer는 **전역 상수( global variable )로 존재**한다.   
+**동일한 draw call 혹은 pipeline state에서 하나의 shader program 입장에서 여러 vertex( 또는 pixel )들이 동일한 상수 데이터를 공유**한다.   
+
+VS 또는 PS shader 내부에서 어디서든 참조 가능한 global variable로 취급하며, 이러한 **constant buffer는 GPU memory에 할당된 하나의 memory block으로 존재**한다.   
+**shader는 이러한 memory block을 통째로 읽어와서 그 안에 담긴 변수를 참조**한다.   
+
+**GPU는 내부적으로 여러 thread가 동시에 같은 shader code를 실행**한다.   
+이때 모든 vertex 마다 **공통으로 필요한 데이터**( 예: MVP matrix )가 있다면, **이를 한 번만 shader에 설정하고, 모든 vertex shader가 참조**한다.   
+만약 이 전역 데이터를 따로따로 vertex에 전달한다면, 대량의 데이터를 중복으로 전송해서 비효율적이다.   
+
+즉, **constant buffer( const global variable )는 각 thread가 똑같이 읽을 수 있는 read-only data로 제공**된다.   
+
+
+#### 3.5.3. create constant buffer
 ```cpp
 template <typename T_CONSTANT>
 void CreateConstantBuffer ( const T_CONSTANT& constantBufferData , ComPtr<ID3D11Buffer>& constantBuffer ) {
