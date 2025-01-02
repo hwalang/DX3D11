@@ -25,6 +25,10 @@ struct ModelViewProjectionConstantBuffer {
 	Matrix projection;
 };
 
+// constant buffer
+static_assert( ( sizeof ( ModelViewProjectionConstantBuffer ) % 16 ) == 0 ,
+	"Constant Buffer size must be 16-byte aligend" );
+
 class CubeApp : public AppBase {
 public:
 	CubeApp ();
