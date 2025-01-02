@@ -341,6 +341,7 @@ struct에 color 전에 location을 먼저 배치한 것을 어떻게 알 수 있
 [Graphics Pipeline](https://learn.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-graphics-pipeline)에서 Input-Assembler stage는 Memory Resource( Buffer, Texture, Constant Buffer )를 입력 받는다. 이러한 데이터는 IA로 들어간 후, shaders를 통과해서 진행된다.   
 **Memory Resources에서 IA로 들어가는 input vertex 데이터의 배치 상태( layout )이라서 이름이 InputLayout**이다.   
 ```cpp
+// Vertex Struct의 구조를 따른다.
 vector<D3D11_INPUT_ELEMENT_DESC> samplingIED = {
 	{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
 	{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 4 * 3, D3D11_INPUT_PER_VERTEX_DATA, 0},
