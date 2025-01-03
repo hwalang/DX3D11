@@ -51,4 +51,12 @@
     <FxCompile Include="SquarePixelShader.hlsl" />
     <FxCompile Include="SquareVertexShader.hlsl" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="wall.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="crate2_diffuse.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
 </Project>

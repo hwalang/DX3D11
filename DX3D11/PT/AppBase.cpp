@@ -1,5 +1,9 @@
 #include "AppBase.h"
 
+// error LNK2019: unresolved external sybol stbi_load 해결법
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 // imgui_impl_win32.cpp에 정의된 메시지 처리 함수에 대한 전방 선언
 // 해당 코드가 없으면 함수를 사용할 수 없다.
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler ( 
@@ -391,5 +395,34 @@ namespace pt {
 		indexBufferData.SysMemSlicePitch = 0;
 
 		m_device->CreateBuffer ( &bufferDesc , &indexBufferData , m_indexBuffer.GetAddressOf () );
+	}
+
+	void AppBase::CreateTexture(const std::string filename, ComPtr<ID3D11Texture2D>& texture, ComPtr<ID3D11ShaderResourceView>& textureResourceView) {
+		int width, height, channels;
+
+		// load image
+		unsigned char* img = stbi_load(filename.c_str(), &width, &height, &channels, 0);
+
+		vector<uint8_t> image;
+		image.resize(width * height * channels);
+		memcpy(image.data(), img, image.size() * sizeof(uint8_t));
+
+		// Create Texture
+		D3D11_TEXTURE2D_DESC txtDesc = {};
+		txtDesc.Width = width;
+		txtDesc.Height = height;
+		txtDesc.MipLevels = txtDesc.ArraySize = 1;
+		txtDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		txtDesc.SampleDesc.Count = 1;
+		txtDesc.Usage = D3D11_USAGE_IMMUTABLE;
+		txtDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+		// Fill in the sub-resource data
+		D3D11_SUBRESOURCE_DATA initData;
+		initData.pSysMem = image.data();
+		initData.SysMemPitch = txtDesc.Width * sizeof(uint8_t) * channels;
+
+		m_device->CreateTexture2D(&txtDesc, &initData, texture.GetAddressOf());
+		m_device->CreateShaderResourceView(texture.Get(), nullptr, textureResourceView.GetAddressOf());
 	}
 }

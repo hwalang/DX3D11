@@ -54,6 +54,20 @@ bool Square::Initialize () {
 		return false;
 	}
 
+	// Create Texture, ShaderResourceView, SamplerState
+	AppBase::CreateTexture ( "crate2_diffuse.png" , m_texture , m_textureResourceView );
+	AppBase::CreateTexture ( "wall.jpg" , m_texture2 , m_textureResourceView2 );
+	D3D11_SAMPLER_DESC sampDesc;
+	ZeroMemory ( &sampDesc , sizeof ( sampDesc ) );
+	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;	// 일반적으로 사용: POINT, LINEAR interpolation
+	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;	// CLAMP, 
+	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+	sampDesc.MinLOD = 0;
+	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	m_device->CreateSamplerState ( &sampDesc , m_samplerState.GetAddressOf () );
+
 	auto [vertices , indices] = MakeSqure ();
 
 	AppBase::CreateVertexBuffer ( vertices , m_vertexBuffer );
@@ -130,8 +144,12 @@ void Square::Render () {
 	// Set Shader
 	m_devcon->VSSetShader ( m_colorVertexShader.Get () , 0 , 0 );
 	m_devcon->VSSetConstantBuffers ( 0 , 1 , m_constantBuffer.GetAddressOf () );
-	m_devcon->PSSetShader ( m_colorPixelShader.Get () , 0 , 0 );
+
+	ID3D11ShaderResourceView* pixelResources[ 2 ] = { m_textureResourceView.Get (), m_textureResourceView2.Get() };
+	m_devcon->PSSetShaderResources ( 0 , 2 , pixelResources );
+	m_devcon->PSSetSamplers ( 0 , 1 , m_samplerState.GetAddressOf () );
 	m_devcon->PSSetConstantBuffers ( 0 , 1 , m_pixelShaderConstantBuffer.GetAddressOf () );
+	m_devcon->PSSetShader ( m_colorPixelShader.Get () , 0 , 0 );
 
 	m_devcon->RSSetState ( m_rasterizerState.Get () );
 

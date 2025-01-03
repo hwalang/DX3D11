@@ -33,6 +33,13 @@ protected:
 	ComPtr<ID3D11Buffer> m_pixelShaderConstantBuffer;
 	UINT m_indexCount;
 
+	// Texturing
+	ComPtr<ID3D11Texture2D> m_texture;
+	ComPtr<ID3D11Texture2D> m_texture2;
+	ComPtr<ID3D11ShaderResourceView> m_textureResourceView;
+	ComPtr<ID3D11ShaderResourceView> m_textureResourceView2;
+	ComPtr<ID3D11SamplerState> m_samplerState;
+
 	ModelViewProjectionConstantBuffer m_constantBufferData;
 	PixelShaderConstantBuffer m_pixelShaderConstantBufferData;
 

@@ -60,6 +60,8 @@ protected:
 		ComPtr<ID3D11VertexShader>& vertexShader , ComPtr<ID3D11InputLayout>& inputLayout);
 	void CreatePixelShader ( const wstring& filename , ComPtr<ID3D11PixelShader>& pixelShader );
 	void CreateIndexBuffer ( const vector<uint16_t>& indices , ComPtr<ID3D11Buffer>& m_indexBuffer );
+	void CreateTexture(const std::string filename, 
+		ComPtr<ID3D11Texture2D>& texture , ComPtr<ID3D11ShaderResourceView>& textureResourceView );
 
 	template <typename T_VERTEX>
 	void CreateVertexBuffer ( const vector<T_VERTEX>& vertices , ComPtr<ID3D11Buffer>& vertexBuffer ) {
