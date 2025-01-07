@@ -1,7 +1,7 @@
 - [Introduce](#introduce)
 - [SquareApp::Initialize()](#squareappinitialize)
 	- [1. MakeSquare()](#1-makesquare)
-		- [1.1. NDC와 UV의 매핑 방법](#11-ndc와-uv의-매핑-방법)
+		- [1.1. Pixel과 UV의 매핑 방법](#11-pixel과-uv의-매핑-방법)
 	- [2. ShaderResourceView, SamplerState](#2-shaderresourceview-samplerstate)
 		- [2.1. ID3D11ShaderResourceView](#21-id3d11shaderresourceview)
 		- [2.2. ID3D11SamplerState](#22-id3d11samplerstate)
@@ -128,16 +128,18 @@ auto MakeSqure () {
 vertices에 texcoord 좌표를 저장한다.   
 **vertex shader에 texcoord 좌표를 넘겨야 pixel shader에도 texcoord 좌표가 입력**된다.   
 
-### 1.1. NDC와 UV의 매핑 방법
-[NDC와 UV매핑에 대한 설명 - MSLearn](https://learn.microsoft.com/en-us/windows/win32/direct3d10/d3d10-graphics-programming-guide-resources-coordinates)   
+### 1.1. Pixel과 UV의 매핑 방법
+[Pixel와 UV매핑에 대한 설명 - MSLearn](https://learn.microsoft.com/en-us/windows/win32/direct3d10/d3d10-graphics-programming-guide-resources-coordinates)   
 
 `texcoords`에 각 UV 좌표를 세팅한다.   
 
 **중요한 점은 각 UV 좌표를 의도한 vertex에 mapping 해야 한다**.   
+
 ![alt text](Images/SquareApp/MappingUVtoNDC.png)   
-vertex에 대한 변환은 GPU의 shader가 담당하기 때문에 **`positions`의 좌표는 추가적인 변환( world, view, projection )이 없으면 NDC 좌표를 의미**한다.   
-이러한 NDC 좌표에 맞춰서 UV 좌표를 매핑하는데, **NDC의 왼쪽위(-1, 1)에 UV의 왼쪽위(0, 0)을 매핑하는 방식**으로 올바른 위치에 배정한다.   
-즉, **`positions`를 NDC 범위로 잡고, 해당 vertices를 UV 좌표에 일대일로 대응**시킨다.   
+
+pixel( screen ) 좌표에 맞춰서 UV 좌표를 매핑하는데, **screen의 왼쪽위(0, 0)에 UV의 왼쪽위(0, 0)을 매핑하는 방식**으로 올바른 위치에 배정한다.   
+
+**vertex shader에서 반환한 좌표를 pipeline에서 NDC 좌표계로 변환 후, NDC 좌표계 $\rightarrow$ Viewport Transformation으로 Screen 좌표계로 배치하고, Rasterization을 수행**하여 pixel이 object에 포함됐는지 파악한 후, 각 pixel이 pixel shader를 호출한다.   
 
 ## 2. ShaderResourceView, SamplerState
 ```cpp

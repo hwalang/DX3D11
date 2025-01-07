@@ -11,6 +11,7 @@
 - [The Coordinate Systems](#the-coordinate-systems)
   - [The Cartesian Coordinates( 데카르트 좌표계 )](#the-cartesian-coordinates-데카르트-좌표계-)
   - [3D Coordinates](#3d-coordinates)
+  - [Rendering Pipeline의 Coordinates Transformation 과정](#rendering-pipeline의-coordinates-transformation-과정)
 - [3D Geometry](#3d-geometry)
   - [Primitives](#primitives)
   - [1. Point Lists](#1-point-lists)
@@ -106,6 +107,11 @@ vertical axis( y-axis )는 1D coordinates에서 다른 direction으로 이동할
 
 ## 3D Coordinates
 2D Coordinates의 x, y-axis에 수직인 axis( z-axis )를 추가하면 3D Coordinates가 된다.   
+
+## Rendering Pipeline의 Coordinates Transformation 과정
+Model Space, World Space, View Space, Projection( Clip ) Space, NDC, Screen Coordinates 순서로 진행된다.   
+
+
 
 # 3D Geometry
 3D coordinates에서 한 point가 space 상의 한 지점을 나타낸다면, 우리는 3D model의 정확한 위치를 array로 구성할 수 있다.   

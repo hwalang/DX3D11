@@ -5,12 +5,13 @@
     - [1.2. 정육면체 indices 정보 세팅](#12-정육면체-indices-정보-세팅)
     - [1.3. vertex의 index 정보를 공유하는 경우 발생하는 문제점](#13-vertex의-index-정보를-공유하는-경우-발생하는-문제점)
 - [AppBase::Run()](#appbaserun)
-  - [1. CubeApp::Update()](#1-cubeappupdate)
-    - [1.1. Model Transformation](#11-model-transformation)
-    - [1.2. View Transformation](#12-view-transformation)
-    - [1.3. Projection](#13-projection)
-    - [1.4. CPU to GPU](#14-cpu-to-gpu)
-  - [2. CubeApp::Render()](#2-cubeapprender)
+  - [1. CPU to vertex shader까지의 좌표계 변환 과정](#1-cpu-to-vertex-shader까지의-좌표계-변환-과정)
+  - [2. CubeApp::Update()](#2-cubeappupdate)
+    - [2.1. Model Transformation](#21-model-transformation)
+    - [2.2. View Transformation](#22-view-transformation)
+    - [2.3. Projection Transformation](#23-projection-transformation)
+    - [2.4. CPU to GPU](#24-cpu-to-gpu)
+  - [3. CubeApp::Render()](#3-cubeapprender)
 - [Code](#code)
   - [CubeApp.h](#cubeapph)
   - [CubeApp.cpp](#cubeappcpp)
@@ -19,7 +20,9 @@
 
 # Introduce
 Cube를 rendering한 window 창을 띄우는 App.   
-Cube에 
+Model 좌표계를 바탕으로 Cube의 vertices를 세팅한다.   
+Cube의 index 해석 방식을 나타내는 indices 배열을 세팅한다.   
+Cube의 Model Space에 model, view, projection 변환을 적용하여 회전시킨다.   
 
 # CubeApp::Initialize()
 ```cpp
@@ -105,9 +108,14 @@ auto MakeBox () {
 ### 1.1. 정육면체 pixel( vertices ) 정보 세팅
 positions는 정점의 위치를, colors는 정점의 색깔을, normals는 정점의 normal vector를 저장한다.   
 
-**positions는 각 면의 네 개의 꼭짓점을 표현**한다. **이 점들은 실제 화면 좌표가 아니라 정육면체를 modeling하는 model space( 모델 좌표 )다**. 이후, world space, view space, projection space로 변환되어 screen에 rendering 된다.   
+**positions는 각 면의 네 개의 꼭짓점을 표현**한다. **이 점들은 실제 화면 좌표가 아니라 정육면체를 modeling하는 model space( 모델 좌표 )다**. 이후, world space, view space, projection space로 변환( GPU의 vertex shader에서 수행 )되어 screen에 rendering 된다.   
 colors는 각 정점마다 색상을 지정한다. 윗면을 예로 들면, 모든 정점이 `(1.0, 0.0, 0.0)` 즉, red를 할당했다.   
 normals는 각 면이 어느 방향을 바라보고 있는지를 나타낸다. 윗면은 `(0, 1, 0)`인 y축 방향으로 설정했다.   
+
+이처럼 **Direct3D11는 Object의 초기 vertices는 Model Space를 기준으로 세팅**한다.   
+**Model Space는 Object가 가지고 있는 고유한 내부 좌표계**다.   
+Origin( 원점, 중심점 )을 (0, 0, 0)에 두고, 각 부분의 상대적 위치를 정의한 공간이 Model Space다.   
+
 
 ```cpp
 // 윗면
@@ -188,7 +196,17 @@ vector<uint16_t> indices = {
 
 `UpdateGUI()`는 [MainLoop.md](/Note/AppFramework/2_MainLoop.md/#21-imgui)를 참고한다.   
 
-## 1. CubeApp::Update()
+## 1. CPU to vertex shader까지의 좌표계 변환 과정
+vertex에 대한 변환은 GPU의 shader가 담당하기 때문에 **`positions`의 좌표는 추가적인 변환( model, view, projection )이 없으면 Model Space를 의미**한다.   
+Model Space에 vertex shader에서 변환을 적용하는데,   
+
+**model( world ) matrix로 world space( scene에 배치되는 위치와 크기 )**   
+**view matrix로 view space( camera 시점 )**   
+**projection matrix로 projection( clip ) space( perspective 또는 orthographic 적용한 결과 )**   
+
+로 좌표계를 변환하여 pipeline에 반환한다.   
+
+## 2. CubeApp::Update()
 매 프레임마다 model이 어떻게 변하는지 구현한다.   
 constant buffer는 dynamic으로 세팅했기 때문에 매 프레임마다 변하는 내용을 CPU에서 GPU로 넘겨줄 수 있도록 준비했다.   
 **일반적으로 물체가 어떻게 움직일지는 CPU에서 계산하고, 변환과 관련된 행렬들을 constant buffer로 GPU에게 보낸다**.   
@@ -225,18 +243,24 @@ void CubeApp::Update ( float dt ) {
 매 프레임마다 Cube가 y축을 기준으로 회전한다.   
 **GPU는 Shader Program( hlsl )을 사용하기 때문에 SimpleMath의 Matrix 결과를 `Transpose()`로 변환**해야 한다.   
 
-### 1.1. Model Transformation
+### 2.1. Model Transformation
+Model Space를 World Space로 변환한다.   
+
 **DirectX는 Left-Coordinates를 채택하고, DirectXSimpleMath는 Row-major Matrix를 사용**한다.   
 따라서 `Matrix::Create{  }`를 사용하면 row-major matrix를 생성한다.   
 **하지만 HLSL Shader는 Column-major Matrix를 사용**하기 때문에 SimpleMath의 결과를 GPU로 보내기 전에 `Transpose()`로 변환한다. **Shader는 GPU에서 동작하는 프로그램임을 명심**하자.   
 
-### 1.2. View Transformation
+### 2.2. View Transformation
+World Space를 View Space로 변환한다.   
+
 view( 시점 )를 변환하는 TIP이 있다.   
 model이 왼쪽으로 한 걸음 움직인다는 것은 나머지 세상이 오른쪽으로 살짝 이동한다는 것과 같다.   
 실제 세상에선 지구를 움직일 수 없지만, 가상 세계에선 가능하다.   
 여기서 `XMMatrixLookAtLH()`를 이용해서 현재 시점을 지정한다.   
 
-### 1.3. Projection
+### 2.3. Projection Transformation
+View Space를 Clip( Projection ) Space로 변환한다.   
+
 [projection image](https://glumpy.readthedocs.io/en/latest/tutorial/cube-ugly.html)   
 
 <img src="Images/CubeApp/Projection.png" width=80% />   
@@ -248,10 +272,10 @@ protected:
 ```
 **perspective projection과 orthographic projection을 사용할 때의 projection을 결정**한다.   
 
-### 1.4. CPU to GPU
+### 2.4. CPU to GPU
 앞에서 생성한 constant buffer와 관련된 데이터를 GPU로 보낸다.   
 
-## 2. CubeApp::Render()
+## 3. CubeApp::Render()
 Graphics Pipeline을 이용하기 위해 rendering 관련 세팅을 준비한다.   
 ```cpp
 void CubeApp::Render () {
